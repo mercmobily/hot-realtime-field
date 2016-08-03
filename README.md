@@ -1,38 +1,30 @@
-# \<hot-realtime-field\>
 
-Realtime field
+`<hot-realtime-field>` allows you to:
+* Use a custom GET call to check in real time if a field is allowed, depending on what the server returns
+* Use a custom PUT call to save that value in real time onto the server
 
-## Install the Polymer-CLI
+You can have just a GET call, just a PUT call, or both. If you have both, the PUT call will only be called once the GET call's result is all clear.
 
-First, make sure you have the [Polymer CLI](https://www.npmjs.com/package/polymer-cli) installed. Then run `polymer serve` to serve your application locally.
+This element is _extremely_ flexible. What is does is very simple, and it will work out of the box with the default settings. However, it can be configured extensively.
 
-## Viewing Your Application
+## Checking a value in real time using a GET
 
-```
-$ polymer serve
-```
+## Saving a value in real time using a PUT
 
-## Building Your Application
+## Checking and saving a value in real time using GET + put
 
-```
-$ polymer build
-```
+## Pre-loading data into the field
 
-This will create a `build/` folder with `bundled/` and `unbundled/` sub-folders
-containing a bundled (Vulcanized) and unbundled builds, both run through HTML,
-CSS, and JS optimizers.
+## Using a custom target ID
 
-You can serve the built versions by giving `polymer serve` a folder to serve
-from:
 
-```
-$ polymer serve build/bundled
-```
 
-## Running Tests
 
-```
-$ polymer test
-```
 
-Your application is already set up to be tested via [web-component-tester](https://github.com/Polymer/web-component-tester). Run `polymer test` to run your application's test suite locally.
+Finally, if the field is a checkbox or a radio button, `<hot-immediate>` will toggle it back in case of error, so that the status will be consistent to what's on the server.
+
+TODO:
+* Document the lot
+* If it's a checkbox or radio, toggle if error (make option)
+bower_components bower.json demo hot-realtime-field.html index.html LICENSE make_readme.sh README.md test
+
