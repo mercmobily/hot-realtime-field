@@ -1,0 +1,231 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../hot-deep-target-behavior/hot-deep-target-behavior.html">
+
+<!--
+
+`<hot-realtime-field>` allows you to create interactive input elements, where you associate a query and a method to a field, and display an error (depending on configuration):
+* When the resultset from the query is empty (GET method, while logging in, user doesn't exist)
+* When the resultset from the query is not empty (GET method, the username is already taken)
+* When the server responds with an error (PUT method, after writing the field to the database)
+
+Finally, if the field is a checkbox or a radio button, `<hot-immediate>` will toggle it back in case of error, so that the status will be consistent to what's on the server.
+
+TODO:
+
+* Make it work in standard app with basic usage
+* Make examples using same code as autocomplete
+* Document the lot
+* If it's a checkbox or radio, toggle if error (make option)
+*
+
+@group Hotplate Elements
+@element hot-realtime-field
+@demo demo/index.html
+-->
+
+<dom-module id="hot-realtime-field">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+
+    <iron-ajax id="request" on-response="_dataLoaderResponse" on-error="_dataLoaderError"></iron-ajax>
+    <content id="contentNode"></content>
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'hot-realtime-field',
+
+      properties: {
+
+        /**
+         * If set, then the autocomplete will use the first iron-ajax widget found in the
+         * light DOM. this is useful when you want to make a specific query, setting specific
+         * headers, etc. The stock iron-ajax will only have URL and METHOD set.
+        */
+        ironAjaxProvided: {
+          type: Boolean
+        },
+
+        /**
+         * If using the internal stock `iron-ajax` object, this will set `iron-ajax`'s method
+         * attribute
+         *
+        */
+        method: {
+          type: String,
+          value: 'get',
+          notify: true,
+        },
+
+        /**
+         * If using the internal stock `iron-ajax` object, this will set `iron-ajax`'s url
+         * attribute
+        */
+        url: {
+          type: String,
+          notify: true,
+        },
+
+        /**
+         * The stock iron-ajax widget used to load data if `ironAjaxProvided` isn't set.
+         */
+        request: {
+          type: Object
+        },
+
+        /**
+         *
+        */
+        checkType: {
+          type: String,
+          value: "is-empty" // empty-set, non-empty-set, catch-errors, auto-complete
+        },
+
+        /**
+         * Message given in case of error AND no error message is
+         * returned by the AJAX call (e.g. timeouts, etc.)
+         */
+        defaultErrorMessage: {
+          type: String,
+          value: "Error!"
+        },
+
+        /**
+         *
+        */
+        errorPath: {
+          type: String,
+          value: 'errors.0.message'
+        },
+
+        /**
+         *
+        */
+        catch: {
+          type: String,
+          value: '422'
+        },
+
+        _field: {
+          type: Object
+        },
+
+      },
+
+      attached: function(){
+
+        // The request object will depend on the iron-ajax-provided attribute.
+        // If using a provided iron-ajax element, listeners will be set
+        // manually so that responses are caught.
+        // Otherwise, the internal request object will be used. The internal one
+        // will use hot-autocomplete's `url` and `method` on each request.
+        if( this.ironAjaxProvided ){
+          this.request = this.queryEffectiveChildrenDeep( "iron-ajax", true, 'hot-autocomplete' );
+          this.listen( this.request, "response", '_dataLoaderResponse');
+          this.listen( this.request, "error", '_dataLoaderError');
+        } else {
+          // Sets the 'request' attribute
+          this.request = this.$.request;
+        }
+
+        this.listen( this._field, 'input', "_inputReceived");
+      },
+
+      detached: function(){
+
+        if( this.ironAjaxProvided ){
+          this.unlisten( this.request, "response", '_dataLoaderResponse');
+          this.unlisten( this.request, "error", '_dataLoaderError');
+        }
+
+        this.unlisten( this._field, 'input', "_inputReceived");
+      },
+
+      ready: function(){
+
+        // Sets the _field value to the first child
+        this._field = this.getEffectiveChildren()[0];
+      },
+
+      _inputReceived: function( e ){
+
+        // Set the correct URL for the GET, as well as handleAs
+        this.request.url = this.url;
+        this.request.handleAs = 'json';
+        this.request.method = this.method;
+
+        // Amazing, having to do this in 2016. Really.
+        // First regexp inspired by iron-request
+        function encodeBit( str ) {
+          if (str === null) return '';
+          return encodeURIComponent( str.toString().replace( /\r?\n/g, '\r\n' ) ).replace( /%20/g, '+' );
+        }
+        this.request.body = encodeBit( this._field.getAttribute('name') ) + '=' + encodeBit( this._field.value );
+
+        // This will generate the request, which -- as indicated in the
+        // request's declarative definition -- will cause either `_dataLoaderResponse`
+        // or `_dataLoaderError` to be called.
+
+        // This is async to give decorating widgets a chance to listen to events
+        // before firing
+        this.async( function(){
+          this.request.generateRequest();
+        })
+      },
+
+
+      _dataLoaderResponse: function( e ){
+
+        // Only consider the last made request
+        if( e.detail != this.request.lastRequest ) return;
+
+        // Get the response
+        var response = e.detail.response;
+
+        switch( this.checkType ){
+          case 'is-empty':
+          case 'is-not-empty':
+            var problem = this.checkType == 'is-empty' ? !response.length : response.length;
+            if( Array.isArray( response ) && problem ){
+              this._field.errorMessage = this.defaultErrorMessage;
+              this._field.invalid = true;
+            } else {
+              this._field.invalid = false;
+            }
+          break;
+        }
+      },
+
+      _dataLoaderError: function( e ){
+
+        // Only consider the last made request, ignore the rest
+        if( e.detail.request != this.request.lastRequest ) return;
+
+        // Get the response
+        var response = e.detail.request.xhr.response;
+        switch( this.checkType ){
+          case 'catch-errors':
+
+            var status = e.detail.request.status;
+            var managed = this.catch.split(',').filter(function( i ){
+              return status == i
+            })[0]
+
+            if( managed ){
+              this._field.errorMessage = this.get( this.errorPath, response ) || this.defaultErrorMessage;
+              this._field.invalid = true;
+            }
+
+            break;
+        }
+      },
+
+    });
+  </script>
+</dom-module>

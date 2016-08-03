@@ -1,0 +1,32 @@
+<!doctype html>
+
+<html>
+  <head>
+    <title>hot-realtime-field test</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../hot-realtime-field.html">
+  </head>
+  <body>
+
+    <test-fixture id="basic">
+      <template>
+        <hot-realtime-field></hot-realtime-field>
+      </template>
+    </test-fixture>
+
+    <script>
+      suite('hot-realtime-field', function() {
+
+        test('instantiating the element works', function() {
+          var element = fixture('basic');
+          assert.equal(element.is, 'hot-realtime-field');
+        });
+
+      });
+    </script>
+  </body>
+</html>
