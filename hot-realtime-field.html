@@ -4,69 +4,230 @@
 <link rel="import" href="../hot-deep-target-behavior/hot-deep-target-behavior.html">
 
 <!--
-
 `<hot-realtime-field>` allows you to:
-* Use a custom GET call to check in real time if a field is allowed, depending on what the server returns
 * Use a custom PUT call to save that value in real time onto the server
+* Use a custom GET call to pre-load data from the server
+* Use a custom GET call to check if the result set from the server is empty (or not empty) and fail validation. Useful to check if a user is taken, or if a username doesn't exist in a login form
 
-You can have just a GET call, just a PUT call, or both. If you have both, the PUT call will only be called once the GET call's result is all clear.
-
-This element is _extremely_ flexible. What is does is very simple, and it will work out of the box with the default settings. However, it can be configured extensively.
+You can use one, two or all three functionalities on the same field at the same time if needed.
 
 ## Saving a value in real time using a PUT, using `put-url`
 
+If you have a field on your site, and want to save its value real-time onto the server, you can use `hot-realtime-field` like this:
 
+    <hot-realtime-field put-url="/stores/polymer/579c/surname">
+      <paper-input required name="surname" label="Your surname"></paper-input>
+    </hot-realtime-field>
 
-## Checking a value in real time using a GET, using `get-url` and `get-check`
+Every time a key is pressed, a PUT will be issued to the server. This also works for check-like fields:
 
-When specifying `get-url`, your common paper-input element will run the query provided in `get-url` and will expect a JSON response with an array. If `get-check` is `is-empty`, validation will _pass_ if the server returned an empty array (think of it as "pick your username"). If `get-check` is `is-not-empty`, validation will _pass_ if the server returned a non-empty array (think of it as "recover your password").
+    <hot-realtime-field put-url="/stores/polymer/579c/accept">
+      <paper-toggle-button name="accept" label="Accept?">Accept?</paper-toggle-button>
+    </hot-realtime-field>
+
+Unlike input fields, for check-like fields you might want to make it disabled during the AJAX queries, in order to give users feedback about the state being changed:
+
+    <hot-realtime-field disable-in-flight put-url="/stores/polymer/579c/accept">
+      <paper-toggle-button name="accept" label="Accept?">Accept?</paper-toggle-button>
+    </hot-realtime-field>
+
+If the PUT fails, check-like fields are reset to their previous state.
+
+### Related attributes
+
+* `put-extra-body-properties`. It's an object (so, the parameter will need to be valid JSON) that will extend the request's body when doing a PUT. it is useful when you want to add things like ID etc. to the PUT query, should the server require it.  By default, a PUT call will have, in its body, an object with one element where the key is the field name and the value is the new value (e.g. `{"surname":"Mobily"}`). However, the body object is enriched with whatever is passed to `put-extra-body-properties`. For example:
+
+    <hot-realtime-field
+      put-url="/stores/polymer/579c/surname"
+      put-extra-body-properties='{"id":"579c"}'>
+
+      <paper-input required name="surname" label="Your surname"></paper-input>
+    </hot-realtime-field>
+
+Note that before running the PUT call, `hot-realtime-field` also emits an event called 'hot-realtime-field-before-put' which will give developers a way to change the `request` property (representing the iron-ajax element about to make the PUT call).
+
+* `handle-put-errors`. It's a comma-separated list of error status that will end up displaying the error message directly within the field, by setting it as "invalid" and setting the target field's `errorMessage` property. If an error isn't handled, the field is left untouched and an event `user-message-error` is fired instead, with `detail` set to `{ message: errorMessage }`; this will give your application a chance to still display the error (which would otherwise fall silent) by having an element listen for `user-message-error` higher up in the DOM. The error message depends on the `error-path` property (see next section), or from `put-default-error-message` (which is by default `Error saving!`). Default for `handle-put-errors`: `400,422`.
+
+    <hot-realtime-field
+      put-url="/stores/polymer/579c/surname"
+      handle-put-errors="400,422">
+
+      <paper-input class="realtime" value="{{fieldSurame}}" required name="surname" label="Your surname"></paper-input>
+    </hot-realtime-field>
+
+* `error-path` In case of error, the error message is extrapolated from the response's body (which is expected to be a JSON, if present). An example could be { "errors":[ {"field": "name", "error":"The name is too long"} ] }. With the default path,  `errors.0.message`, "The name is too long" will be extrapolated. Default: `errors.0.message`.
+
+* `put-default-error-message`.
+
+By default `hot-realtime-field` will try to extrapolate the error message from the response's body (which is expected to be a JSON) using `error-path` (see the previous attribute explained). If extrapolation failed (in case the server didn't respond at all, for example, or the response wasn't compliant), `put-default-error-message` will be shown instead. Default: `Error querying`.
+
+## Pre-loading of data
+
+Saving a field in real time is great. However, the ability to load the field's current value from the server is what makes `hot-realtime-field` really shine. It's possible to do this easily with the `preload-url` option:
+
+    <hot-realtime-field
+      put-url="/stores/polymer/579c/surname">
+      preload-url="/stores/polymer/579c/surname">
+
+      <paper-input class="realtime" required name="surname" label="Your surname"></paper-input>
+    </hot-realtime-field>
+
+Or with a check-like field:
+
+    <hot-realtime-field
+      disable-in-flight
+      put-url="/stores/polymer/579c/accept"
+      preload-url="/stores/polymer/579c/accept">
+
+      <paper-toggle-button name="accept" label="Accept?">Accept?</paper-toggle-button>
+    </hot-realtime-field>
+
+Note the "disable-in-flight" option, which should always be set for check-like widgets.
+
+Robust applications will want to check if the initial GET to load the information worked or not. The easiest way to do it is by using a `hot-network` widget wrapping `hot-realtime-field`:
+
+    <hot-network manage-errors>
+      <hot-realtime-field
+        preload-url="/stores/polymer/579c/surname"
+        put-url="/stores/polymer/579c/surname">
+
+        <paper-input name="surname" label="Your surname"></paper-input>
+      </hot-realtime-field>
+    </hot-network>
+
+Or using a check-like field:
+
+    <hot-network manage-errors>
+      <hot-realtime-field
+        disable-in-flight
+        preload-url="/stores/polymer/579c/accept"
+        put-url="/stores/polymer/579c/accept">
+
+        <paper-toggle-button name="accept" label="Accept?">Accept?</paper-toggle-button>
+      </hot-realtime-field>
+    </hot-network>
+
+`hot-network` by default monitors the events of the `request` property of its first child. In this case, the first child is indeed `hot-realtime-field`, which has a `request` property pointing to the `iron-ajax` object which will do the preloading. The `manage-error` option means that in case of error, `hot-network` will give the users a visual cue that the operation didn't work, and will also provide a way to re-run the failed AJAX operation. All for free!
+
+Note that you can have real time, self-saving  widgets within forms. However, it would likely confuse users and should not be encouraged.
+
+Before running the GET call to preload data, `hot-realtime-field` also emits an event called 'hot-realtime-field-before-preload' which will give developers a way to change the `preloaderRequest` property (representing the iron-ajax element about to make the GET call).
+
+### Server cooperation with `put-url`
+
+The server needs to cooperate in order to preload values. In the examples above, it would need to return:
+
+    {
+      "surname":"Mobily"
+    }
+
+Where `surname` corresponds to the field's `name` attribute.
+You can change the path within the returned object changing the `preloadedValuePath` attribute:
+
+    <hot-realtime-field
+      preloadedValuePath="someOtherKey"
+      preload-url="/stores/polymer/579c/surname"
+
+      <paper-input name="surname" label="Your surname"></paper-input>
+    </hot-realtime-field>
+
+In this case, the server will be expected to respond with:
+
+    {
+      "someOtherKey":"Mobily"
+    }
+
+## Real time availability check
+
+When specifying `get-url`, `hot-realtime-field` will run the query provided in `get-url` and will expect a JSON response with an array. If `get-check` is `is-empty`, validation will _pass_ if the server returned an empty array (think of it as "pick your username"). If `get-check` is `is-not-empty`, validation will _pass_ if the server returned a non-empty array (think of it as "recover your password").
 
 Example:
 
-<hot-realtime-field get-url="/stores/polymer?name={{name3}}" get-check="is-empty">
-<paper-input ID="TOPINPUT" value="{{fieldName3}}" required id="name" name="name" label="Your name"></paper-input>
-</hot-realtime-field>
+    <hot-realtime-field get-url="/stores/polymer?username={{fieldUsername}}" get-check="is-empty">
+      <paper-input value="{{fieldUsername}}" name="username" label="Your username"></paper-input>
+    </hot-realtime-field>
 
-### Extra parameters
-
-You can specify the following attributes:
+### Related attributes
 
 *  `get-check-message`. Defines the error displayed to the user if `get-check` fails. For example: `User name taken!`. Default: `Error!`
 
 Example:
 
-    <hot-realtime-field get-url="/stores/polymer?name={{name3}}" get-check="is-empty" get-check-message="Username taken!">
-      <paper-input ID="TOPINPUT" value="{{fieldName3}}" required id="name" name="name" label="Your name"></paper-input>
+    <hot-realtime-field
+      get-check-message="Name taken sorry!"
+      get-url="/stores/polymer?username={{fieldUsername}}"
+      get-check="is-empty">
+
+      <paper-input value="{{fieldUsername}}" name="username" label="Your username"></paper-input>
     </hot-realtime-field>
 
-* `handle-get-errors`. It's a comma-separated list of error status that will be handled directly. For example, `400,401,403`. Errors that are "handled" will turn the field `invalid`, and will set the `errorMessage` of the field element to the returned error message. Please note that this parameter is mainly here for consistency: its counterpart `handle-put-errors` makes much more sense. If an error isn't handle, an event `user-message-error` is fired, with `detial` set to `{message: "The error message"}`. This will give your application a chance to display the error to the user (otherwise, the error will fall completely silent). Default: `400`
+Note that the query to the server represents a query to the server, where matching records will be expected to be returned.
 
-Example:
+* `handle-get-errors`. It's a comma-separated list of error status that will end up displaying the error message directly within the field, setting it as "invalid" and setting the target field's `errorMessage` property. If an error isn't handled, the field is left untouched and an event `user-message-error` is fired instead, with `detail` set to `{ message: errorMessage }`; this will give your application a chance to display the error (which would otherwise fall silent).  The error message depends on the `error-path` property (see next section), or from `get-default-error-message` (which is by default `Error querying!`). Default for `handle-put-errors`: `400`.
 
-    <hot-realtime-field get-url="/stores/polymer?name={{name3}}" get-check="is-empty" handleGetErrors="400,401,403">
-      <paper-input ID="TOPINPUT" value="{{fieldName3}}" required id="name" name="name" label="Your name"></paper-input>
-    </hot-realtime-field>
+* `error-path` In case of error, the error message is extrapolated from the response's body (which is expected to be a JSON, if present). An example could be { "errors":[ {"field": "name", "error":"The name is too long"} ] }. With the default path,  `errors.0.message`, "The name is too long" will be extrapolated. Default: `errors.0.message`.
 
 * `get-default-error-message`.
 
-By default `hot-realtime-field` will try to extrapolate the error message from the response's body (which is expected to be a JSON) using `error-path` (see the next parameter explained). If extrapolation failed (in case the server didn't respond at all, for example), this is the error message that will be shown. Remember that this is only considered in case of HTTP errors. Default: `Error querying`.
+By default `hot-realtime-field` will try to extrapolate the error message from the response's body (which is expected to be a JSON) using `error-path` (see the previous attribute explained). If extrapolation failed (in case the server didn't respond at all, for example, or the response wasn't compliant), `put-default-error-message` will be shown instead. Default: `Error querying`.
 
-* `error-path` The error will be extrapolated from the response's body (which is expected to be a JSON). An example could be { "errors":[ {"field": "name", "error":"The name is too long"} ] }. With the default path,  `errors.0.message`, "The name is too long" will be extrapolated. Default: `errors.0.message`.
+## Combining real-time validation (`get-url`) and auto-save (`put-url`) together
 
+You can use both `get-url` and `put-url` at the same time on the same element. Keep in mind that `get-url` will check if the server returned an empty set (therefore checking if the value is "avaialble"), whereas `put-url` will save the value onto the server.
 
-## Checking and saving a value in real time using GET + put
+_**If both `get-url` and `put-url` are specified, then `put-url` will only get triggered once `get-url` has returned with a non-error**_ This means for example that if the username comes back as "unavailable", the `put` on the server won't be attempted.
 
-## Pre-loading data into the field
+For example this code will check if a username is available, and if it is, it will save it in real time onto the server:
 
-### Usage with hot-network
+    <hot-realtime-field
+      get-url="/stores/polymer?username={{fieldUsername}}"
+      get-check="is-empty"
+      get-check-message="Name taken sorry!"
+      put-url="/stores/polymer/579c/username">
+      <paper-input value="{{fieldUsername}}" name="username" label="Your username"></paper-input>
+    </hot-realtime-field>
+
+## Combining pre-loading (`preload-url`), real-time validation (`get-url`) and auto-save (`put-url`) together
+
+There is nothing stopping you from pre-loading data, as well as checking for availability _and_ saving the value in real time onto the server:
+
+    <hot-realtime-field
+      get-url="/stores/polymer?username={{fieldUsername}}"
+      get-check="is-empty"
+      get-check-message="Name taken sorry!"
+      put-url="/stores/polymer/579c/username"
+      preload-url="/stores/polymer/579c/username">
+      <paper-input value="{{fieldUsername}}" required name="username" label="Your username"></paper-input>
+    </hot-realtime-field>
+
+### Adding hot-network to the mix
+
+Adding hot-network will ensure that the preload phase will be resilient.
+
+    <hot-network manage-errors>
+      <hot-realtime-field
+        get-url="/stores/polymer?username={{fieldUsername}}"
+        get-check="is-empty"
+        get-check-message="Name taken sorry!"
+        put-url="/stores/polymer/579c/username"
+        preload-url="/stores/polymer/579c/username">
+        <paper-input value="{{fieldUsername}}" required name="username" label="Your username"></paper-input>
+      </hot-realtime-field>
+    </hot-network>
+
+Note that `hot-network` will by default look for the `request` property of the first child. In this case, the `request` property of `hot-realtime-field` happens to be the `iron-ajax` element used to do the preloading. This is intentional, to make sure that `hot-realtime-field` works well with `hot-network` using default values.
 
 ## Using a custom target ID
 
-## Checkbox-type fields
+Although there haven't been any use cases where this has been necessary, it's also possible to specify the target ID directly and have the target input field further in the DOM, rather than being `<hot-realtime-field>`'s first child:
 
-If the field is a checkbox or a radio button, `<hot-immediate>` will toggle it back in case of error, so that the status will be consistent to what's on the server. Also, since checkbox-like buttons often don't provide validation theming,
+    <hot-realtime-field target-id="surname" put-url="/stores/polymer/579c/surname">
+      <paper-input id="surname" required name="surname" label="Your surname"></paper-input>
+    </hot-realtime-field>
 
-TODO:
+## Using alternative `iron-ajax` widgets
+
+`hot-realtime-field` will use its internal `iron-ajax` request widgets `to carry out requests. If you would like to use your own `iron-ajax` widgets, you can set the properties `loader-iron-ajax-provided` and `preloader-iron-ajax-provided`, which will look for an element with id `loader` and `preloader` respectively, and use them to make the requests.
 
 @group Hotplate Elements
 @element hot-realtime-field
@@ -142,8 +303,8 @@ TODO:
         },
 
         /**
-         * If using the internal stock `iron-ajax` object, this will set `iron-ajax`'s url
-         * attribute
+         *
+         *
         */
         getUrl: {
           type: String,
@@ -158,6 +319,10 @@ TODO:
           notify: true,
         },
 
+        putExtraBodyProperties: {
+          type: Object,
+          value: {},
+        },
 
         /**
          *
@@ -166,6 +331,7 @@ TODO:
           type: String,
           value: "is-empty" // is-empty, is-not-empty, none
         },
+
 
         /**
          * Message given in case of error AND no error message is
@@ -232,8 +398,6 @@ TODO:
 
       },
 
-       // Q1: Is this a sane approach? The point is to make sure the element works on native
-       // elements as well as Polymer ones...
       _listenToField: function(){
 
         // Start listening for change events from the input field, 4 different cases (!)
@@ -293,6 +457,10 @@ TODO:
           this.preloaderRequest.method = 'get';
           this.preloaderRequest.url = this.preloadUrl;
           this.preloaderRequest.handleAs = 'json';
+
+          // This will give users a chance to change the request if needed
+          this.fire( 'hot-realtime-field-before-preload', {} );
+
           this.async( function() { this.preloaderRequest.generateRequest() } );
         }
       },
@@ -314,11 +482,13 @@ TODO:
       _dataPreloaderResponse: function( e ){
         var response = e.detail.response;
 
-        // Insane check to see if this is to be a chekcbox
-        var attr = this._field.hotAsChecked ? 'checked' : 'value';
-        this._unlistenToField();
-        this._field[ attr ] = this.get( this.preloadedValuePath || this._field.name || '', e.detail.response );
-        this._listenToField();
+        if( response ){
+          // Insane check to see if this is to be a chekcbox
+          var attr = this._field.hotAsChecked ? 'checked' : 'value';
+          this._unlistenToField();
+          this._field[ attr ] = this.get( this.preloadedValuePath || this._field.name || '', response );
+          this._listenToField();
+        }
       },
 
       ready: function(){
@@ -356,9 +526,19 @@ TODO:
 
         this.loaderRequest.method = method;
         this.loaderRequest.url = method == 'get' ? this.getUrl : this.putUrl;
-        this.loaderRequest.body = {};
-        this.loaderRequest.body[ this._field.getAttribute('name') ] = this._field[ this._field.hotAsChecked ? 'checked' : 'value' ];
+        if( method == 'put' ){
+          this.loaderRequest.body = {};
+          this.loaderRequest.body[ this._field.getAttribute('name') ] = this._field[ this._field.hotAsChecked ? 'checked' : 'value' ];
+        }
         this.loaderRequest.contentType = 'application/json';
+
+        // Allows users to declaratively enrich the body
+        if( method == 'put'){
+          this.extend( this.loaderRequest.body, this.putExtraBodyProperties );
+        }
+
+        // This will give users a chance to change the request if needed
+        this.fire( 'hot-realtime-field-before-put', {} );
 
         this.async( function(){ this.loaderRequest.generateRequest(); });
       },
