@@ -5,9 +5,9 @@
 
 <!--
 `<hot-realtime-field>` allows you to:
-* Use a custom PUT call to save that value in real time onto the server
-* Use a custom GET call to pre-load data from the server
-* Use a custom GET call to check if the result set from the server is empty (or not empty) and fail validation. Useful to check if a user is taken, or if a username doesn't exist in a login form
+* Use a custom PUT call to save that value in real time onto the server, with `put-url`
+* Use a custom GET call to pre-load data from the server, with `preload-url`
+* Use a custom GET call to check if the result set from the server is empty (or not empty) and fail validation, with `get-url`. Useful to check if a user is taken, or if a username doesn't exist in a login form
 
 You can use one, two or all three functionalities on the same field at the same time if needed.
 
@@ -229,6 +229,10 @@ Although there haven't been any use cases where this has been necessary, it's al
 
 `hot-realtime-field` will use its internal `iron-ajax` request widgets `to carry out requests. If you would like to use your own `iron-ajax` widgets, you can set the properties `loader-iron-ajax-provided` and `preloader-iron-ajax-provided`, which will look for an element with id `loader` and `preloader` respectively, and use them to make the requests.
 
+TODO:
+* Document fields
+* Write working examples
+
 @group Hotplate Elements
 @element hot-realtime-field
 @demo demo/index.html
@@ -259,43 +263,53 @@ Although there haven't been any use cases where this has been necessary, it's al
       properties: {
 
         /**
-         * If set, then the autocomplete will use the first iron-ajax widget found in the
-         * light DOM. this is useful when you want to make a specific query, setting specific
-         * headers, etc. The stock iron-ajax will only have URL and METHOD set.
+         * If set, then the autocomplete will use the iron-ajax widget found in the
+         * light DOM with ID "loader". This is useful when you want to make a specific query, setting specific
+         * headers, etc.
         */
         loaderIronAjaxProvided: {
           type: Boolean
         },
 
         /**
-         * If set, then the autocomplete will use the first iron-ajax widget found in the
-         * light DOM. this is useful when you want to make a specific query, setting specific
-         * headers, etc. The stock iron-ajax will only have URL and METHOD set.
+         * If set, then the preloader will use the iron-ajax widget found in the
+         * light DOM with ID "preloader". This is useful when you want to make a specific query, setting specific
+         * headers, etc.
         */
         preloaderIronAjaxProvided: {
           type: Boolean
         },
 
         /**
-         *
+         *  If specified, the widget will not target its first child in the light DOM, but
+         *  the element with id `targetId`
         */
         targetId: {
           type: String
         },
 
+        /**
+         *  If specified, the element will set the input field as "disabled" during
+         *  AJAX calls. This is especially useful for check-like fields.
+        */
         disableInFlight: {
           type: Boolean
         },
 
         /**
-         *
+         *  If specified, the element will preload information from the server
+         *  by using the GET method. For a field called `surname`, the
+         *  expected output from the server is JSON `{"surname":"Mobily"}`.
+         *  You can adjust how the data from the server is interpreted with
+         *  `preloadedValuePath`
         */
         preloadUrl: {
           type: String
         },
 
         /**
-         *
+         *  Specifies a different path used to find the field value from the
+         *  server response. See `preloadUrl`.
         */
         preloadedValuePath: {
           type: String,
@@ -303,8 +317,13 @@ Although there haven't been any use cases where this has been necessary, it's al
         },
 
         /**
-         *
-         *
+         *  If specified, the element will use this URL to make a GET request
+         *  to the server every time the content of the input field changes,
+         *  to check whether the server returns an empty set,
+         *  or a non-empty set. The server is expected to return a JSON containing
+         *  an array. If `getCheck` is `is-empty`, then an empty array from the server
+         *  will pass validation. If `getCheck` is `is-not-empty`, then a non-empty array
+         *  from the server will pass validation.
         */
         getUrl: {
           type: String,
@@ -312,19 +331,8 @@ Although there haven't been any use cases where this has been necessary, it's al
         },
 
         /**
-         *
-        */
-        putUrl: {
-          type: String,
-          notify: true,
-        },
-
-        putExtraBodyProperties: {
-          type: Object,
-          value: {},
-        },
-
-        /**
+         *  Sets if `get-url` will pass if the server returns an empty array
+         *  (`is-empty`) or if it returns a non-empty set (`is-not-empty`).
          *
         */
         getCheck: {
@@ -332,10 +340,9 @@ Although there haven't been any use cases where this has been necessary, it's al
           value: "is-empty" // is-empty, is-not-empty, none
         },
 
-
         /**
-         * Message given in case of error AND no error message is
-         * returned by the AJAX call (e.g. timeouts, etc.)
+         * The error message displayed within the field when the `getCheck` check
+         *  fails
          */
         getCheckMessage: {
           type: String,
@@ -343,7 +350,32 @@ Although there haven't been any use cases where this has been necessary, it's al
         },
 
         /**
+         *  If specified, the element will use this URL to make a PUT request
+         *  to the server every time the content of the input field changes, to
+         *  store the new value. The body of the PUT request will be in the format
+         *  `{"surname":"Mobily"}` for the field `surname`.
+         *  You can add more properties via `putExtraBodyProperties`
          *
+        */
+        putUrl: {
+          type: String,
+          notify: true,
+        },
+
+        /**
+         * An object (to be represented as a JSON string when using the element
+         * declaratively) that will extend the body of the PUT request.
+         *
+        */
+        putExtraBodyProperties: {
+          type: Object,
+          value: {},
+        },
+
+        /**
+         * The list of errors that will be "directly handled" by calls made to
+         * `putUrl`. Here "directly handled" means that they will set an error message
+         * onto the field, and will mark the field as invalid.
         */
         handlePutErrors: {
           type: String,
@@ -352,7 +384,8 @@ Although there haven't been any use cases where this has been necessary, it's al
 
         /**
          * Message given in case of error AND no error message is
-         * returned by the AJAX call (e.g. timeouts, etc.)
+         * returned by the AJAX call (e.g. timeouts, blank pages, or
+         * JSON in the wrong format where no error message could be extracted)
          */
         putDefaultErrorMessage: {
           type: String,
@@ -360,11 +393,13 @@ Although there haven't been any use cases where this has been necessary, it's al
         },
 
         /**
-         *
+         * The list of errors that will be "directly handled" by calls made to
+         * `getUrl`. Here "directly handled" means that they will set an error message
+         * onto the field, and will mark the field as invalid.
         */
         handleGetErrors: {
           type: String,
-          value: "400" // Typical errors
+          value: "400"
         },
 
         /**
@@ -377,7 +412,10 @@ Although there haven't been any use cases where this has been necessary, it's al
         },
 
         /**
-         *
+         * The path of the error in the JSON object returned by the server.
+         * This is where the error is expected to be by default. If the error
+         * cannot be extracted, then `getDefaultErrorMessage` or `putDefaultErrorMessage`
+         * (depending on the case) is used instead.
         */
         errorPath: {
           type: String,
@@ -385,9 +423,19 @@ Although there haven't been any use cases where this has been necessary, it's al
         },
 
         /**
-         * The stock iron-ajax widget used to load data if `ironAjaxProvided` isn't set.
+         * The `iron-ajax` element used to make request to preload information using
+         * the preloadUrl check. This makes this widget directly compatible with
+         * `hot-network`.
          */
         request: {
+          type: Object
+        },
+
+        /**
+         * The `iron-ajax` element used to make request to GET and PUT information using
+         * the `getUrl` and `putUrl` URLs.
+         */
+        loaderRequest: {
           type: Object
         },
 
