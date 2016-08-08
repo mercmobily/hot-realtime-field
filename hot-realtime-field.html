@@ -16,19 +16,19 @@ You can use one, two or all three functionalities on the same field at the same 
 
 If you have a field on your site, and want to save its value real-time onto the server, you can use `hot-realtime-field` like this:
 
-    <hot-realtime-field save-url="/stores/polymer/579c/surname">
+    <hot-realtime-field save-url="/users/579c/surname">
       <paper-input required name="surname" label="Your surname"></paper-input>
     </hot-realtime-field>
 
 Every time a key is pressed, a PUT will be issued to the server. This also works for check-like fields:
 
-    <hot-realtime-field save-url="/stores/polymer/579c/accept">
+    <hot-realtime-field save-url="/users/579c/accept">
       <paper-toggle-button name="accept" label="Accept?">Accept?</paper-toggle-button>
     </hot-realtime-field>
 
 Unlike input fields, for check-like fields you might want to make it disabled during the AJAX queries, in order to give users feedback about the state being changed:
 
-    <hot-realtime-field disable-in-flight save-url="/stores/polymer/579c/accept">
+    <hot-realtime-field disable-in-flight save-url="/users/579c/accept">
       <paper-toggle-button name="accept" label="Accept?">Accept?</paper-toggle-button>
     </hot-realtime-field>
 
@@ -39,7 +39,7 @@ If the PUT fails, check-like fields are reset to their previous state.
 * `save-extra-body-properties`. It's an object (so, the parameter will need to be valid JSON) that will extend the request's body when doing a PUT. it is useful when you want to add things like ID etc. to the PUT query, should the server require it.  By default, a PUT call will have, in its body, an object with one element where the key is the field name and the value is the new value (e.g. `{"surname":"Mobily"}`). However, the body object is enriched with whatever is passed to `save-extra-body-properties`. For example:
 
     <hot-realtime-field
-      save-url="/stores/polymer/579c/surname"
+      save-url="/users/579c/surname"
       save-extra-body-properties='{"id":"579c"}'>
 
       <paper-input required name="surname" label="Your surname"></paper-input>
@@ -50,10 +50,10 @@ Note that before running the PUT call, `hot-realtime-field` also emits an event 
 * `handle-save-errors`. It's a comma-separated list of error status that will end up displaying the error message directly within the field, by setting it as "invalid" and setting the target field's `errorMessage` property. If an error isn't handled, the field is left untouched and an event `user-message-error` is fired instead, with `detail` set to `{ message: errorMessage }`; this will give your application a chance to still display the error (which would otherwise fall silent) by having an element listen for `user-message-error` higher up in the DOM. The error message depends on the `error-path` property (see next section), or from `save-default-erroault-error-message` (which is by default `Error saving!`). Default for `handle-save-errors`: `400,422`.
 
     <hot-realtime-field
-      save-url="/stores/polymer/579c/surname"
+      save-url="/users/579c/surname"
       handle-save-errors="400,422">
 
-      <paper-input class="realtime" value="{{fieldSurame}}" required name="surname" label="Your surname"></paper-input>
+      <paper-input class="realtime" name="surname" label="Your surname"></paper-input>
     </hot-realtime-field>
 
 * `error-path` In case of error, the error message is extrapolated from the response's body (which is expected to be a JSON, if present). An example could be { "errors":[ {"field": "name", "error":"The name is too long"} ] }. With the default path,  `errors.0.message`, "The name is too long" will be extrapolated. Default: `errors.0.message`.
@@ -67,18 +67,18 @@ By default `hot-realtime-field` will try to extrapolate the error message from t
 Saving a field in real time is great. However, the ability to load the field's current value from the server is what makes `hot-realtime-field` really shine. It's possible to do this easily with the `preload-url` option:
 
     <hot-realtime-field
-      save-url="/stores/polymer/579c/surname">
-      preload-url="/stores/polymer/579c/surname">
+      save-url="/users/579c/surname">
+      preload-url="/users/579c/surname">
 
-      <paper-input class="realtime" required name="surname" label="Your surname"></paper-input>
+      <paper-input name="surname" label="Your surname"></paper-input>
     </hot-realtime-field>
 
 Or with a check-like field:
 
     <hot-realtime-field
       disable-in-flight
-      save-url="/stores/polymer/579c/accept"
-      preload-url="/stores/polymer/579c/accept">
+      save-url="/users/579c/accept"
+      preload-url="/users/579c/accept">
 
       <paper-toggle-button name="accept" label="Accept?">Accept?</paper-toggle-button>
     </hot-realtime-field>
@@ -89,8 +89,8 @@ Robust applications will want to check if the initial GET to load the informatio
 
     <hot-network manage-errors>
       <hot-realtime-field
-        preload-url="/stores/polymer/579c/surname"
-        save-url="/stores/polymer/579c/surname">
+        preload-url="/users/579c/surname"
+        save-url="/users/579c/surname">
 
         <paper-input name="surname" label="Your surname"></paper-input>
       </hot-realtime-field>
@@ -101,8 +101,8 @@ Or using a check-like field:
     <hot-network manage-errors>
       <hot-realtime-field
         disable-in-flight
-        preload-url="/stores/polymer/579c/accept"
-        save-url="/stores/polymer/579c/accept">
+        preload-url="/users/579c/accept"
+        save-url="/users/579c/accept">
 
         <paper-toggle-button name="accept" label="Accept?">Accept?</paper-toggle-button>
       </hot-realtime-field>
@@ -127,7 +127,7 @@ You can change the path within the returned object changing the `preloadedValueP
 
     <hot-realtime-field
       preloadedValuePath="someOtherKey"
-      preload-url="/stores/polymer/579c/surname"
+      preload-url="/users/579c/surname"
 
       <paper-input name="surname" label="Your surname"></paper-input>
     </hot-realtime-field>
@@ -144,7 +144,7 @@ When specifying `taken-url`, `hot-realtime-field` will run the query provided in
 
 Example:
 
-    <hot-realtime-field taken-url="/stores/polymer?username={{fieldUsername}}" taken-check="is-taken">
+    <hot-realtime-field taken-url="/users?username={{fieldUsername}}" taken-check="is-taken">
       <paper-input value="{{fieldUsername}}" name="username" label="Your username"></paper-input>
     </hot-realtime-field>
 
@@ -156,7 +156,7 @@ Example:
 
     <hot-realtime-field
       get-check-message="Name taken sorry!"
-      taken-url="/stores/polymer?username={{fieldUsername}}"
+      taken-url="/users?username={{fieldUsername}}"
       taken-check="is-taken">
 
       <paper-input value="{{fieldUsername}}" name="username" label="Your username"></paper-input>
@@ -181,10 +181,10 @@ _**If both `taken-url` and `save-url` are specified, then `save-url` will only g
 For example this code will check if a username is available, and if it is, it will save it in real time onto the server:
 
     <hot-realtime-field
-      taken-url="/stores/polymer?username={{fieldUsername}}"
+      taken-url="/users?username={{fieldUsername}}"
       taken-check="is-taken"
       taken-check-message="Name taken sorry!"
-      save-url="/stores/polymer/579c/username">
+      save-url="/users/579c/username">
       <paper-input value="{{fieldUsername}}" name="username" label="Your username"></paper-input>
     </hot-realtime-field>
 
@@ -193,11 +193,11 @@ For example this code will check if a username is available, and if it is, it wi
 There is nothing stopping you from pre-loading data, as well as checking for availability _and_ saving the value in real time onto the server:
 
     <hot-realtime-field
-      taken-url="/stores/polymer?username={{fieldUsername}}"
+      taken-url="/users?username={{fieldUsername}}"
       taken-check="is-taken"
       taken-check-message="Name taken sorry!"
-      save-url="/stores/polymer/579c/username"
-      preload-url="/stores/polymer/579c/username">
+      save-url="/users/579c/username"
+      preload-url="/users/579c/username">
       <paper-input value="{{fieldUsername}}" required name="username" label="Your username"></paper-input>
     </hot-realtime-field>
 
@@ -209,11 +209,11 @@ Adding hot-network will ensure that the preload phase will be resilient.
 
     <hot-network manage-errors>
       <hot-realtime-field
-        taken-url="/stores/polymer?username={{fieldUsername}}"
+        taken-url="/users?username={{fieldUsername}}"
         taken-check="is-taken"
         taken-check-message="Name taken sorry!"
-        save-url="/stores/polymer/579c/username"
-        preload-url="/stores/polymer/579c/username">
+        save-url="/users/579c/username"
+        preload-url="/users/579c/username">
         <paper-input value="{{fieldUsername}}" required name="username" label="Your username"></paper-input>
       </hot-realtime-field>
     </hot-network>
@@ -224,7 +224,8 @@ Note that `hot-network` will by default look for the `request` property of the f
 
 Although there haven't been any use cases where this has been necessary, it's also possible to specify the target ID directly and have the target input field further in the DOM, rather than being `<hot-realtime-field>`'s first child:
 
-    <hot-realtime-field target-id="surname" save-url="/stores/polymer/579c/surname">
+    <hot-realtime-field target-id="surname" save-url="/users/579c/surname">
+      <p>Hello!</p>
       <paper-input id="surname" required name="surname" label="Your surname"></paper-input>
     </hot-realtime-field>
 
