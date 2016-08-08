@@ -3,6 +3,7 @@
 <link rel="import" href="../iron-form/iron-form.html">
 <link rel="import" href="../hot-deep-target-behavior/hot-deep-target-behavior.html">
 
+
 <!--
 `<hot-realtime-field>` allows you to:
 * Use a custom PUT call to save that value in real time onto the server, with `put-url`
@@ -230,20 +231,20 @@ Although there haven't been any use cases where this has been necessary, it's al
 `hot-realtime-field` will use its internal `iron-ajax` request widgets `to carry out requests. If you would like to use your own `iron-ajax` widgets, you can set the properties `loader-iron-ajax-provided` and `preloader-iron-ajax-provided`, which will look for an element with id `loader` and `preloader` respectively, and use them to make the requests.
 
 TODO:
-* Document fields
-* Write working examples
+* Write working examples with fake JSON working, using the examples written in the documentation as a template. Use
+  hot-form as template.
 
 @group Hotplate Elements
 @element hot-realtime-field
 @demo demo/index.html
 -->
-
 <dom-module id="hot-realtime-field">
   <template>
     <style>
       :host {
         display: block;
       }
+
       [hidden] {
         display: none !important;
       }
@@ -266,7 +267,7 @@ TODO:
          * If set, then the autocomplete will use the iron-ajax widget found in the
          * light DOM with ID "loader". This is useful when you want to make a specific query, setting specific
          * headers, etc.
-        */
+         */
         loaderIronAjaxProvided: {
           type: Boolean
         },
@@ -275,7 +276,7 @@ TODO:
          * If set, then the preloader will use the iron-ajax widget found in the
          * light DOM with ID "preloader". This is useful when you want to make a specific query, setting specific
          * headers, etc.
-        */
+         */
         preloaderIronAjaxProvided: {
           type: Boolean
         },
@@ -283,15 +284,15 @@ TODO:
         /**
          *  If specified, the widget will not target its first child in the light DOM, but
          *  the element with id `targetId`
-        */
+         */
         targetId: {
-          type: String
+          type: String,
         },
 
         /**
          *  If specified, the element will set the input field as "disabled" during
          *  AJAX calls. This is especially useful for check-like fields.
-        */
+         */
         disableInFlight: {
           type: Boolean
         },
@@ -302,7 +303,7 @@ TODO:
          *  expected output from the server is JSON `{"surname":"Mobily"}`.
          *  You can adjust how the data from the server is interpreted with
          *  `preloadedValuePath`
-        */
+         */
         preloadUrl: {
           type: String
         },
@@ -310,7 +311,7 @@ TODO:
         /**
          *  Specifies a different path used to find the field value from the
          *  server response. See `preloadUrl`.
-        */
+         */
         preloadedValuePath: {
           type: String,
           value: "",
@@ -324,7 +325,7 @@ TODO:
          *  an array. If `getCheck` is `is-empty`, then an empty array from the server
          *  will pass validation. If `getCheck` is `is-not-empty`, then a non-empty array
          *  from the server will pass validation.
-        */
+         */
         getUrl: {
           type: String,
           notify: true,
@@ -334,7 +335,7 @@ TODO:
          *  Sets if `get-url` will pass if the server returns an empty array
          *  (`is-empty`) or if it returns a non-empty set (`is-not-empty`).
          *
-        */
+         */
         getCheck: {
           type: String,
           value: "is-empty" // is-empty, is-not-empty, none
@@ -356,7 +357,7 @@ TODO:
          *  `{"surname":"Mobily"}` for the field `surname`.
          *  You can add more properties via `putExtraBodyProperties`
          *
-        */
+         */
         putUrl: {
           type: String,
           notify: true,
@@ -366,7 +367,7 @@ TODO:
          * An object (to be represented as a JSON string when using the element
          * declaratively) that will extend the body of the PUT request.
          *
-        */
+         */
         putExtraBodyProperties: {
           type: Object,
           value: {},
@@ -376,7 +377,7 @@ TODO:
          * The list of errors that will be "directly handled" by calls made to
          * `putUrl`. Here "directly handled" means that they will set an error message
          * onto the field, and will mark the field as invalid.
-        */
+         */
         handlePutErrors: {
           type: String,
           value: "400,422" // Typical errors
@@ -396,7 +397,7 @@ TODO:
          * The list of errors that will be "directly handled" by calls made to
          * `getUrl`. Here "directly handled" means that they will set an error message
          * onto the field, and will mark the field as invalid.
-        */
+         */
         handleGetErrors: {
           type: String,
           value: "400"
@@ -416,7 +417,7 @@ TODO:
          * This is where the error is expected to be by default. If the error
          * cannot be extracted, then `getDefaultErrorMessage` or `putDefaultErrorMessage`
          * (depending on the case) is used instead.
-        */
+         */
         errorPath: {
           type: String,
           value: 'errors.0.message'
@@ -439,55 +440,53 @@ TODO:
           type: Object
         },
 
-
         _field: {
           type: Object
         },
 
       },
 
-      _listenToField: function(){
+      _listenToField: function() {
 
         // Start listening for change events from the input field, 4 different cases (!)
-        if( this._field.is ){
-          this.listen( this._field, this._field.hotAsChecked ? 'checked-changed' : 'value-changed', "_inputReceived");
+        if (this._field.is) {
+          this.listen(this._field, this._field.hotAsChecked ? 'checked-changed' : 'value-changed', "_inputReceived");
         } else {
-          this.listen( this._field, this._field.hotAsChecked ? 'change' : 'input', "_inputReceived");
+          this.listen(this._field, this._field.hotAsChecked ? 'change' : 'input', "_inputReceived");
         }
       },
 
-      _unlistenToField: function(){
+      _unlistenToField: function() {
 
         // Stop listening for change events from the input field, 4 different cases (!)
-        if( this._field.is ){
-          this.unlisten( this._field, this._field.hotAsChecked ? 'checked-changed' : 'value-changed', "_inputReceived");
+        if (this._field.is) {
+          this.unlisten(this._field, this._field.hotAsChecked ? 'checked-changed' : 'value-changed', "_inputReceived");
         } else {
-          this.unlisten( this._field, this._field.hotAsChecked ? 'change' : 'input', "_inputReceived");
+          this.unlisten(this._field, this._field.hotAsChecked ? 'change' : 'input', "_inputReceived");
         }
       },
 
-
-      attached: function(){
+      attached: function() {
 
         // The request object will depend on the iron-ajax-provided attribute.
         // If using a provided iron-ajax element, listeners will be set
         // manually so that responses are caught.
         // Otherwise, the internal request object will be used. The internal one
         // will use hot-autocomplete's `url` and `method` on each request.
-        if( this.loaderIronAjaxProvided ){
-          this.loaderRequest = this.queryEffectiveChildrenDeep( "iron-ajax#loader", true, 'hot-autocomplete' );
-          if( ! this.loaderRequest ) throw( new Error("When using loader-iron-ajax-provided, you must have an iron-ajax with ID 'loader' in your element's DOM"))
-          this.listen( this.loaderRequest, "response", '_dataLoaderResponse');
-          this.listen( this.loaderRequest, "error", '_dataLoaderError');
+        if (this.loaderIronAjaxProvided) {
+          this.loaderRequest = this.queryEffectiveChildrenDeep("iron-ajax#loader", true, 'hot-autocomplete');
+          if (!this.loaderRequest) throw (new Error("When using loader-iron-ajax-provided, you must have an iron-ajax with ID 'loader' in your element's DOM"))
+          this.listen(this.loaderRequest, "response", '_dataLoaderResponse');
+          this.listen(this.loaderRequest, "error", '_dataLoaderError');
         } else {
           // Sets the 'request' attribute
           this.loaderRequest = this.$.loader;
         }
 
-        if( this.preloaderIronAjaxProvided ){
-          this.preloaderRequest = this.queryEffectiveChildrenDeep( "iron-ajax#preloader", true, 'hot-autocomplete' );
-          if( ! this.preloaderRequest ) throw( new Error("When using preloader-iron-ajax-provided, you must have an iron-ajax with ID 'preloader' in your element's DOM"))
-          this.listen( this.preloaderRequest, "response", '_dataPreloaderResponse');
+        if (this.preloaderIronAjaxProvided) {
+          this.preloaderRequest = this.queryEffectiveChildrenDeep("iron-ajax#preloader", true, 'hot-autocomplete');
+          if (!this.preloaderRequest) throw (new Error("When using preloader-iron-ajax-provided, you must have an iron-ajax with ID 'preloader' in your element's DOM"))
+          this.listen(this.preloaderRequest, "response", '_dataPreloaderResponse');
         } else {
           // Sets the 'request' attribute
           this.preloaderRequest = this.$.preloader;
@@ -500,63 +499,65 @@ TODO:
         this._listenToField();
 
         // Needs to be preloaded. Only do this one for each time it's attached.
-        if( this.preloadUrl && ! this._preloaded ){
+        if (this.preloadUrl && !this._preloaded) {
           this._preloaded = true;
           this.preloaderRequest.method = 'get';
           this.preloaderRequest.url = this.preloadUrl;
           this.preloaderRequest.handleAs = 'json';
 
           // This will give users a chance to change the request if needed
-          this.fire( 'hot-realtime-field-before-preload', {} );
+          this.fire('hot-realtime-field-before-preload', {});
 
-          this.async( function() { this.preloaderRequest.generateRequest() } );
+          this.async(function() {
+            this.preloaderRequest.generateRequest()
+          });
         }
       },
 
-      detached: function(){
+      detached: function() {
 
-        if( this.loaderIronAjaxProvided ){
-          this.unlisten( this.loaderRequest, "response", '_dataLoaderResponse');
-          this.unlisten( this.loaderRequest, "error", '_dataLoaderError');
+        if (this.loaderIronAjaxProvided) {
+          this.unlisten(this.loaderRequest, "response", '_dataLoaderResponse');
+          this.unlisten(this.loaderRequest, "error", '_dataLoaderError');
         }
 
-        if( this.preloaderIronAjaxProvided ){
-          this.unlisten( this.preloaderRequest, "response", '_dataPreloaderResponse');
+        if (this.preloaderIronAjaxProvided) {
+          this.unlisten(this.preloaderRequest, "response", '_dataPreloaderResponse');
         }
 
         this._unlistenToField();
       },
 
-      _dataPreloaderResponse: function( e ){
+      _dataPreloaderResponse: function(e) {
         var response = e.detail.response;
 
-        if( response ){
+        if (response) {
           // Insane check to see if this is to be a chekcbox
           var attr = this._field.hotAsChecked ? 'checked' : 'value';
           this._unlistenToField();
-          this._field[ attr ] = this.get( this.preloadedValuePath || this._field.name || '', response );
+          this._field[attr] = this.get(this.preloadedValuePath || this._field.name || '', response);
           this._listenToField();
         }
       },
 
-      ready: function(){
-        if( this.targetId ){
-          this._field = this.queryEffectiveChildrenDeep( "#" + this.targetId, true, 'hot-realtime-field' );
+      ready: function() {
+        if (this.targetId) {
+          this._field = this.queryEffectiveChildrenDeep("#" + this.targetId, true, 'hot-realtime-field');
         } else {
           this._field = this.getEffectiveChildren()[0];
         }
 
         // I am only borrowing this method from iron-form. It's the sanest way I found to
         // check whether I am dealing with a text widget or with a switch-like widget
-        if( this.$.hiddenForm._usesCheckedInsteadOfValue( this._field ) ) this._field.hotAsChecked = true;
+        if (this.$.hiddenForm._usesCheckedInsteadOfValue(this._field)) this._field.hotAsChecked = true;
       },
 
-      _inputReceived: function( e ){
+      _inputReceived: function(e) {
 
         // Won't do anything if the emitter is an unreadied Polymer widgets.This
         // is important as we are listening to events in an element in the light
         // DOM, and we *might* get the initial Polymer setting of the value to ""
-        if( this._field.is && !this._field._readied ) return;
+        if (this._field.is && !this._field._readied) return;
 
         // Set the correct handleAs
         this.loaderRequest.handleAs = 'json';
@@ -564,40 +565,41 @@ TODO:
         // Run the get or the put. NOTE that it's possible that BOTH of them
         // are set. However, in that case `get` will be run first, and `put`
         // will only get run once `get` was successful
-        if( this.getUrl ) this._runMethod( 'get' );
-        else if( this.putUrl ) this._runMethod( 'put' );
+        if (this.getUrl) this._runMethod('get');
+        else if (this.putUrl) this._runMethod('put');
       },
 
-      _runMethod: function( method ){
+      _runMethod: function(method) {
 
-        if( this.disableInFlight ) this._field.disabled = true;
+        if (this.disableInFlight) this._field.disabled = true;
 
         this.loaderRequest.method = method;
         this.loaderRequest.url = method == 'get' ? this.getUrl : this.putUrl;
-        if( method == 'put' ){
+        if (method == 'put') {
           this.loaderRequest.body = {};
-          this.loaderRequest.body[ this._field.getAttribute('name') ] = this._field[ this._field.hotAsChecked ? 'checked' : 'value' ];
+          this.loaderRequest.body[this._field.getAttribute('name')] = this._field[this._field.hotAsChecked ? 'checked' : 'value'];
         }
         this.loaderRequest.contentType = 'application/json';
 
         // Allows users to declaratively enrich the body
-        if( method == 'put'){
-          this.extend( this.loaderRequest.body, this.putExtraBodyProperties );
+        if (method == 'put') {
+          this.extend(this.loaderRequest.body, this.putExtraBodyProperties);
         }
 
         // This will give users a chance to change the request if needed
-        this.fire( 'hot-realtime-field-before-put', {} );
+        this.fire('hot-realtime-field-before-put', {});
 
-        this.async( function(){ this.loaderRequest.generateRequest(); });
+        this.async(function() {
+          this.loaderRequest.generateRequest();
+        });
       },
 
-
-      _dataLoaderResponse: function( e ){
+      _dataLoaderResponse: function(e) {
 
         // Only consider the last made request
-        if( e.detail != this.loaderRequest.lastRequest ) return;
+        if (e.detail != this.loaderRequest.lastRequest) return;
 
-        if( this.disableInFlight ){
+        if (this.disableInFlight) {
           this._field.disabled = false;
           this._field.focus();
         }
@@ -606,33 +608,33 @@ TODO:
         var response = e.detail.response;
 
         // For GET methods, check if the getCheck conditions are satisfied
-        if( Polymer.dom( e ).localTarget.method == 'get' && ( this.getCheck == 'is-empty' || this.getChek == 'is-not-empty' ) ){
+        if (Polymer.dom(e).localTarget.method == 'get' && (this.getCheck == 'is-empty' || this.getChek == 'is-not-empty')) {
 
           var problem = this.getCheck == 'is-empty' ? response.length : !response.length;
-          if( Array.isArray( response ) && problem ){
+          if (Array.isArray(response) && problem) {
             this._field.errorMessage = this.getCheckMessage;
             this._field.invalid = true;
           } else {
             this._field.invalid = false;
             // The "put" will only happen once the get is successful
-            if( this.putUrl ) this._runMethod( 'put' );
+            if (this.putUrl) this._runMethod('put');
           }
         } else {
           this._field.invalid = false;
         }
       },
 
-      _dataLoaderError: function( e ){
+      _dataLoaderError: function(e) {
 
         // Only consider the last made request, ignore the rest
-        if( e.detail.request != this.loaderRequest.lastRequest ) return;
+        if (e.detail.request != this.loaderRequest.lastRequest) return;
 
-        if( this.disableInFlight ){
+        if (this.disableInFlight) {
           this._field.disabled = false;
           this._field.focus();
         }
 
-        var method = Polymer.dom( e ).localTarget.method;
+        var method = Polymer.dom(e).localTarget.method;
         var handleErrors = method == 'put' ? this.handlePutErrors : this.handleGetErrors;
 
         // Get the response
@@ -640,15 +642,14 @@ TODO:
 
         // Check if the status is one of the managed ones
         var status = e.detail.request.status;
-        var managed = handleErrors.split(',').filter(function( i ){
+        var managed = handleErrors.split(',').filter(function(i) {
           return status == i
         })[0]
 
         // If the status is one of the managed ones, then display the problem "in field"
-
         var defaultErrorMessage = method == 'put' ? this.putDefaultErrorMessage : this.getDefaultErrorMessage;
-        var errorMessage = this.get( this.errorPath, response ) || defaultErrorMessage;
-        if( managed ){
+        var errorMessage = this.get(this.errorPath, response) || defaultErrorMessage;
+        if (managed) {
           this._field.errorMessage = errorMessage;
           this._field.invalid = true;
         }
@@ -658,17 +659,19 @@ TODO:
         // at least explain that there was a problem.
         // Note that checkbox-like widgets rarely display their invalid states
         // nor error messages. So, including them into the club
-        if( ! managed || this._field.hotAsChecked ){
-          this.fire( 'user-message-error', { message: errorMessage } );
+        if (!managed || this._field.hotAsChecked) {
+          this.fire('user-message-error', {
+            message: errorMessage
+          });
         }
 
         // If it's a check-like input, it will need to reset it to its previous
         // state for the UI to make sense.
         // Note that it needs to be sandwitched between unlisten/listen or
         // it will attempt to send the state-reverting back to the server...
-        if( this._field.hotAsChecked ){
+        if (this._field.hotAsChecked) {
           this._unlistenToField();
-          if( this._field.hotAsChecked ) this._field.set( 'checked',  !this._field.checked );
+          if (this._field.hotAsChecked) this._field.set('checked', !this._field.checked);
           this._listenToField();
         }
 
