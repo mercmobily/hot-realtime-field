@@ -1,20 +1,84 @@
 <!doctype html>
 <html>
-  <head>
-    <title>hot-realtime-field demo</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
-    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
 
-    <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
-    <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
+<head>
+  <title>hot-realtime-field demo</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
 
-    <link rel="import" href="../hot-realtime-field.html">
+  <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
+  <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
 
-    <style is="custom-style" include="demo-pages-shared-styles">
-    </style>
-  </head>
-  <body>
+  <link rel="import" href="../hot-realtime-field.html">
+
+  <link rel="import" href="../../hot-user-message-toasts/hot-user-message-toasts.html">
+  <script src="../../sinonjs/sinon.js"></script>
+
+  <style is="custom-style" include="demo-pages-shared-styles">
+
+  </style>
+</head>
+
+<body>
+
+  <script>
+    sinon.log = function(m) {
+      console.log("Message:", m)
+    };
+    var server = sinon.fakeServer.create();
+    server.autoRespond = true;
+    server.autoRespondAfter = 500;
+
+    server.respondWith(
+      'GET',
+      '/suggest?name=', [
+        200,
+        'application/json',
+        '[{"name":"tony"},{"name":"tonia"}]'
+      ]
+    );
+
+    server.respondWith(
+      'POST',
+      'submit_validating', [
+        200,
+        'application/json',
+        '{"name":"nameField","surname":"surnameField"}'
+      ]
+    );
+
+    server.respondWith(
+      'POST',
+      '/car',
+      function(request) {
+        var maker = request.requestBody.split('&')[0].split('=')[1].toUpperCase();
+        var model = request.requestBody.split('&')[1].split('=')[1].toUpperCase();
+        request.respond(
+          200,
+          'application/json',
+          '{"maker":"' + maker + '","model":"' + model + '"}'
+        );
+      }
+    );
+
+    server.respondWith(
+      'PUT',
+      '/car/car1',
+      function(request) {
+        var maker = request.requestBody.split('&')[0].split('=')[1].toUpperCase();
+        var model = request.requestBody.split('&')[1].split('=')[1].toUpperCase();
+        request.respond(
+          200,
+          'application/json',
+          '{"maker":"' + maker + '","model":"' + model + '"}'
+        );
+      }
+
+    );
+  </script>
+
+  <hot-user-message-toasts>
 
     <div class="vertical-section-container centered">
       <h3>Basic hot-realtime-field Demo</h3>
@@ -24,6 +88,8 @@
         </template>
       </demo-snippet>
     </div>
+  </hot-user-message-toasts>
 
-  </body>
+</body>
+
 </html>
