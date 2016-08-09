@@ -36,7 +36,7 @@ If the PUT fails, check-like fields are reset to their previous state.
 
 ### Related attributes
 
-* `save-extra-body-properties`. It's an object (so, the parameter will need to be valid JSON) that will extend the request's body when doing a PUT. it is useful when you want to add things like ID etc. to the PUT query, should the server require it.  By default, a PUT call will have, in its body, an object with one element where the key is the field name and the value is the new value (e.g. `{"surname":"Mobily"}`). However, the body object is enriched with whatever is passed to `save-extra-body-properties`. For example:
+* `save-extra-body-properties`. It's an object (so, the parameter will need to be valid JSON) that will extend the request's body when doing a PUT. it is useful when you want to add things like ID etc. to the PUT query, should the server require it.  By default, a PUT call will have, in its body, an object with one element where the key is the field name and the value is the new value (e.g. `{"surname":"Mobily"}`). However, the body object is enriched with whatever is passed to `save-extra-body-properties`. Note that before running the PUT call, `hot-realtime-field` also emits an event called 'hot-realtime-field-before-put' which will give developers a way to change the `request` property (representing the iron-ajax element about to make the PUT call). For example:
 
     <hot-realtime-field
       save-url="/users/579c/surname"
@@ -45,7 +45,6 @@ If the PUT fails, check-like fields are reset to their previous state.
       <paper-input required name="surname" label="Your surname"></paper-input>
     </hot-realtime-field>
 
-Note that before running the PUT call, `hot-realtime-field` also emits an event called 'hot-realtime-field-before-put' which will give developers a way to change the `request` property (representing the iron-ajax element about to make the PUT call).
 
 * `handle-save-errors`. It's a comma-separated list of error status that will end up displaying the error message directly within the field, by setting it as "invalid" and setting the target field's `errorMessage` property. If an error isn't handled, the field is left untouched and an event `user-message-error` is fired instead, with `detail` set to `{ message: errorMessage }`; this will give your application a chance to still display the error (which would otherwise fall silent) by having an element listen for `user-message-error` higher up in the DOM. The error message depends on the `error-path` property (see next section), or from `save-default-erroault-error-message` (which is by default `Error saving!`). Default for `handle-save-errors`: `400,422`.
 
@@ -58,9 +57,7 @@ Note that before running the PUT call, `hot-realtime-field` also emits an event 
 
 * `error-path` In case of error, the error message is extrapolated from the response's body (which is expected to be a JSON, if present). An example could be { "errors":[ {"field": "name", "error":"The name is too long"} ] }. With the default path,  `errors.0.message`, "The name is too long" will be extrapolated. Default: `errors.0.message`.
 
-* `save-default-error-message`.
-
-By default `hot-realtime-field` will try to extrapolate the error message from the response's body (which is expected to be a JSON) using `error-path` (see the previous attribute explained). If extrapolation failed (in case the server didn't respond at all, for example, or the response wasn't compliant), `save-default-error-message` will be shown instead. Default: `Error querying`.
+* `save-default-error-message`. By default `hot-realtime-field` will try to extrapolate the error message from the response's body (which is expected to be a JSON) using `error-path` (see the previous attribute explained). If extrapolation failed (in case the server didn't respond at all, for example, or the response wasn't compliant), `save-default-error-message` will be shown instead. Default: `Error querying`.
 
 ## Pre-loading of data
 
