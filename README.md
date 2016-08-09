@@ -57,7 +57,7 @@ If the PUT fails, check-like fields are reset to their previous state.
 Saving a field in real time is great. However, the ability to load the field's current value from the server is what makes `hot-realtime-field` really shine. It's possible to do this easily with the `preload-url` option:
 
     <hot-realtime-field
-      save-url="/users/579c/surname">
+      save-url="/users/579c/surname"
       preload-url="/users/579c/surname">
 
       <paper-input name="surname" label="Your surname"></paper-input>
@@ -104,7 +104,7 @@ Note that you can have real time, self-saving elements within forms. However, it
 
 Before running the GET call to preload data, `hot-realtime-field` also emits an event called 'hot-realtime-field-before-preload' which will give developers a way to change the `preloaderRequest` property (representing the iron-ajax element about to make the GET call).
 
-### Server cooperation with `save-url`, and the `preloaded-value-path` attribute
+### Server cooperation with `preload-url`, and the `preloaded-value-path` attribute
 
 The server needs to cooperate in order to preload values. In the examples above, it would need to return:
 
@@ -140,7 +140,7 @@ Example:
 
 ### Related attributes
 
-*  `taken-check-message`. Defines the error displayed to the user if `taken-check` fails. For example: `User name taken!`. Default: `Error!`
+*  `taken-check-message`. Defines the error displayed to the user if `taken-check` fails. For example: `User name taken!`. Note that the query to the server represents a query to the server, where matching records will be expected to be returned. Default: `Error!`
 
 Example:
 
@@ -152,15 +152,11 @@ Example:
       <paper-input value="{{fieldUsername}}" name="username" label="Your username"></paper-input>
     </hot-realtime-field>
 
-Note that the query to the server represents a query to the server, where matching records will be expected to be returned.
-
 * `handle-taken-errors`. It's a comma-separated list of error status that will end up displaying the error message directly within the field, setting it as "invalid" and setting the target field's `errorMessage` property. If an error isn't handled, the field is left untouched and an event `user-message-error` is fired instead, with `detail` set to `{ message: errorMessage }`; this will give your application a chance to display the error (which would otherwise fall silent).  The error message depends on the `error-path` property (see next section), or from `taken-default-error-message` (which is by default `Error querying!`). Default for `handle-taken-errors`: `400`.
 
 * `error-path` In case of error, the error message is extrapolated from the response's body (which is expected to be a JSON, if present). An example could be { "errors":[ {"field": "name", "error":"The name is too long"} ] }. With the default path,  `errors.0.message`, "The name is too long" will be extrapolated. Default: `errors.0.message`.
 
-* `taken-default-error-message`.
-
-By default `hot-realtime-field` will try to extrapolate the error message from the response's body (which is expected to be a JSON) using `error-path` (see the previous attribute explained). If extrapolation failed (in case the server didn't respond at all, for example, or the response wasn't compliant), `save-default-error-message` will be shown instead. Default: `Error querying`.
+* `taken-default-error-message`. By default `hot-realtime-field` will try to extrapolate the error message from the response's body (which is expected to be a JSON) using `error-path` (see the previous attribute explained). If extrapolation failed (in case the server didn't respond at all, for example, or the response wasn't compliant), `save-default-error-message` will be shown instead. Default: `Error querying`.
 
 ## Combining real-time validation (`taken-url`) and auto-save (`save-url`) together
 
@@ -222,8 +218,4 @@ Although there haven't been any use cases where this has been necessary, it's al
 ## Using alternative `iron-ajax` widgets
 
 `hot-realtime-field` will use its internal `iron-ajax` request widgets `to carry out requests. If you would like to use your own `iron-ajax` widgets, you can set the properties `loader-iron-ajax-provided` and `preloader-iron-ajax-provided`, which will look for an element with id `loader` and `preloader` respectively, and use them to make the requests.
-
-TODO:
-* Write working examples with fake JSON working, using the examples written in the documentation as a template. Use
-  hot-form as template.
 
