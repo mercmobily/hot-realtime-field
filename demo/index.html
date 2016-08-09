@@ -13,6 +13,10 @@
   <link rel="import" href="../hot-realtime-field.html">
 
   <link rel="import" href="../../hot-user-message-toasts/hot-user-message-toasts.html">
+  <link rel="import" href="../../paper-input/paper-input.html">
+  <link rel="import" href="../../paper-toggle-button/paper-toggle-button.html">
+  <link rel="import" href="../../hot-network/hot-network.html">
+
   <script src="../../sinonjs/sinon.js"></script>
 
   <style is="custom-style" include="demo-pages-shared-styles">
@@ -28,66 +32,390 @@
     };
     var server = sinon.fakeServer.create();
     server.autoRespond = true;
-    server.autoRespondAfter = 500;
+    server.autoRespondAfter = 700;
+
+    var flacky1First = true;
+    var savedSurname = "Mobily";
+
+    // Normal saving of a field. Will simulate error 500 when
+    // the field is "500"
+    server.respondWith(
+      'PUT',
+      '/users/579c/surname',
+      function(request) {
+
+        console.log("Received a PUT request on", request.url);
+
+        var data = JSON.parse(request.requestBody);
+        var r = {};
+        r.surname = data.surname;
+
+        if (r.surname == '500') {
+          console.log("Responding 500 to save, simulating a server error")
+          request.respond(
+            500,
+            'application/json',
+            ''
+          )
+        } else if (r.surname && r.surname[0] && r.surname[0] != r.surname[0].toUpperCase()) {
+          console.log("Responing 422 to save, validation error")
+          request.respond(
+            422,
+            'application/json',
+            JSON.stringify({
+              errors: [{
+                field: "surname",
+                message: "Must start with a capital letter (from the server)! "
+              }]
+            })
+          )
+        } else {
+          console.log("Responding 200 to save, surname saved: " + data.surname)
+          savedSurname = data.surname;
+          request.respond(
+            200,
+            'application/json',
+            JSON.stringify(r)
+          );
+        }
+
+      }
+    );
+
+    // Saving of a boolean field. It will return 500 (server error)
+    // one in 3,
+    server.respondWith(
+      'PUT',
+      '/users/579c/accept',
+      function(request) {
+
+        console.log("Received a PUT request on", request.url);
+        console.log("Surname on server at call time: ", savedSurname);
+
+        var data = JSON.parse(request.requestBody);
+        var r = {};
+        r.accept = data.accept;
+
+        var r = Math.floor(Math.random() * 100);
+        if (r < 33) {
+          request.respond(
+            500,
+            'application/json',
+            ''
+          )
+        } else if (r >= 33 && r < 66) {
+          request.respond(
+            200,
+            'application/json',
+            JSON.stringify(r)
+          );
+        } else if (r >= 66) {
+          request.respond(
+            422,
+            'application/json',
+            JSON.stringify({
+              errors: [{
+                field: "accept",
+                message: "Not a valid value!"
+              }]
+            })
+          )
+        }
+
+      }
+    );
 
     server.respondWith(
       'GET',
-      '/suggest?name=', [
+      '/users/579c/surname', [
         200,
         'application/json',
-        '[{"name":"tony"},{"name":"tonia"}]'
+        JSON.stringify({
+          surname: savedSurname,
+          alternative: {
+            surname: 'Merc Mobily'
+          }
+        })
       ]
     );
 
+    // Normal saving of a field. Will simulate error 500 when
+    // the field is "500"
     server.respondWith(
-      'POST',
-      'submit_validating', [
-        200,
-        'application/json',
-        '{"name":"nameField","surname":"surnameField"}'
-      ]
-    );
-
-    server.respondWith(
-      'POST',
-      '/car',
+      'GET',
+      '/flaky/users/579c/surname',
       function(request) {
-        var maker = request.requestBody.split('&')[0].split('=')[1].toUpperCase();
-        var model = request.requestBody.split('&')[1].split('=')[1].toUpperCase();
-        request.respond(
-          200,
-          'application/json',
-          '{"maker":"' + maker + '","model":"' + model + '"}'
-        );
+
+        console.log("Received a GET request on (flaky)", request.url);
+        console.log("Surname on server at call time: ", savedSurname);
+
+        var r = Math.floor(Math.random() * 100);
+        if (r < 20 || flacky1First) {
+          flacky1First = false;
+          request.respond(
+            500,
+            'application/json',
+            ''
+          );
+        } else {
+
+          r = {
+            surname: savedSurname,
+            alternative: {
+              surname: 'Merc Mobily'
+            }
+          }
+
+          request.respond(
+            200,
+            'application/json',
+            JSON.stringify(r)
+          );
+        }
       }
     );
 
+    // Saving of a boolean field. It will return 500 (server error)
+    // one in 2,
     server.respondWith(
-      'PUT',
-      '/car/car1',
+      'GET',
+      /^\/flaky\/users\?surname=.*$/,
       function(request) {
-        var maker = request.requestBody.split('&')[0].split('=')[1].toUpperCase();
-        var model = request.requestBody.split('&')[1].split('=')[1].toUpperCase();
-        request.respond(
-          200,
-          'application/json',
-          '{"maker":"' + maker + '","model":"' + model + '"}'
-        );
-      }
 
+        console.log("Received a GET request on (flaky)", request.url);
+        console.log("Surname on server at call time: ", savedSurname);
+
+        var suffix = savedSurname;
+
+        if (suffix.length && request.url.indexOf(suffix, request.url.length - suffix.length) !== -1 || request.url.indexOf('Taken', request.url.length - 5) !== -1) {
+          console.log("Returned the record after request: " + request.url);
+
+          request.respond(
+            200,
+            'application/json',
+            '[{"surname":"' + savedSurname + '"}]'
+          );
+        } else {
+
+          var r = Math.floor(Math.random() * 100);
+          if (r < 83) {
+            console.log("Returned error after request: " + request.url);
+            request.respond(
+              500,
+              'application/json',
+              ''
+            );
+          } else {
+            console.log("Returned empty set after request" + request.url);
+            request.respond(
+              200,
+              'application/json',
+              '[]'
+            );
+          }
+
+        }
+      }
+    );
+
+    // Saving of a boolean field. It will return 500 (server error)
+    // one in 2,
+    server.respondWith(
+      'GET',
+      /^\/users\?surname=.*$/,
+      function(request) {
+        console.log("Received a GET request on (reliable)", request.url);
+        console.log("Surname on server at call time: ", savedSurname);
+
+        var suffix = savedSurname;
+        debugger;
+        if (suffix.length && request.url.indexOf(suffix, request.url.length - suffix.length) !== -1 || request.url.indexOf('Taken', request.url.length - 5) !== -1) {
+          console.log("Returning the record after request", request.url);
+
+          request.respond(
+            200,
+            'application/json',
+            '[{"surname":"' + savedSurname + '"}]'
+          );
+        } else {
+          console.log("Returned empty set after request", request.url);
+
+          request.respond(
+            200,
+            'application/json',
+            '[]'
+          );
+        }
+      }
     );
   </script>
 
   <hot-user-message-toasts>
 
-    <div class="vertical-section-container centered">
-      <h3>Basic hot-realtime-field Demo</h3>
-      <demo-snippet>
-        <template>
-          <hot-realtime-field></hot-realtime-field>
-        </template>
-      </demo-snippet>
-    </div>
+
+    <templater is="dom-bind">
+
+
+      <div class="vertical-section-container centered">
+
+        <p><b>(The error message at the very start is normal)</b></p>
+
+        <h3>Real-time saving</h3>
+
+        <demo-snippet>
+          <h1>Basic real-time saving.</h1>
+          <p>Server will respond with 422 if the surname doesn't stard with a capital letter Also, the server will respond with a 500 if the surname is "500"</p>
+          <template>
+            <hot-realtime-field save-url="/users/579c/surname">
+              <paper-input required name="surname" label="Your surname"></paper-input>
+            </hot-realtime-field>
+
+          </template>
+        </demo-snippet>
+
+        <demo-snippet>
+          <template>
+            <h1>Basic real-time saving, check-like input</h1>
+            <p>Changing this will randomly result in (1) 200 Success (2) 500 Server error (3) 422 Validation error.</p>
+            <hot-realtime-field disable-in-flight save-url="/users/579c/accept">
+              <paper-toggle-button name="accept" label="Accept?">Accept?</paper-toggle-button>
+            </hot-realtime-field>
+
+          </template>
+        </demo-snippet>
+
+
+        <demo-snippet>
+          <h1>Basic real-time saving, using extra options</h1>
+          <p></p>
+          <template>
+            <hot-realtime-field save-url="/users/579c/surname" save-extra-body-properties='{"id":"579c"}' handle-save-errors="400,422" error-path="errors.0.message" save-default-error-message="(Custom message) Could not save!">
+              <paper-input required name="surname" label="Your surname"></paper-input>
+            </hot-realtime-field>
+
+          </template>
+        </demo-snippet>
+
+        <h3>Data pre-loading</h3>
+
+        <demo-snippet>
+          <h1>Basic pre-loading</h1>
+          <p>Loading will always work</p>
+          <template>
+            <hot-realtime-field save-url="/users/579c/surname" preload-url="/users/579c/surname">
+              <paper-input name="surname" label="Your surname"></paper-input>
+            </hot-realtime-field>
+
+          </template>
+        </demo-snippet>
+
+        <demo-snippet>
+          <h1>Basic pre-loading</h1>
+          <p>Loading will always fail the first time, and then fail 20% of the time. Click on the red overlay to reload. Note: hot-network is _extremely_ recommended when preloading</p>
+          <template>
+            <hot-network manage-errors>
+              <hot-realtime-field save-url="/users/579c/surname" preload-url="/flaky/users/579c/surname">
+                <paper-input name="surname" label="Your surname"></paper-input>
+              </hot-realtime-field>
+            </hot-network>
+
+          </template>
+        </demo-snippet>
+
+        <demo-snippet>
+          <h1>Basic pre-loading, using extra options</h1>
+          <p></p>
+          <template>
+            <hot-network manage-errors>
+              <hot-realtime-field save-url="/users/579c/surname" preload-url="/users/579c/surname" preloaded-value-path="alternative.surname">
+                <paper-input name="surname" label="Your surname"></paper-input>
+              </hot-realtime-field>
+            </hot-network>
+
+          </template>
+        </demo-snippet>
+
+        <h3>Real-time availability check</h3>
+
+        <demo-snippet>
+          <h1>Basic check if a surname is still "free"</h1>
+          <p>In this case, the check will pass if the query is empty, indicating "availability". "Taken" is already taken.</p>
+          <template is="dom-bind">
+
+            <hot-realtime-field taken-url="/users?surname={{fieldSurname}}" taken-check="is-not-taken">
+              <paper-input value="{{fieldSurname}}" name="surname" label="Your surname"></paper-input>
+            </hot-realtime-field>
+
+          </template>
+        </demo-snippet>
+
+        <demo-snippet>
+          <h1>Basic check if a surname is still "valid"</h1>
+          <p>In this case, the check will pass if something is returned by the query, indicating "validity". "Taken" is valid</p>
+          <template is="dom-bind">
+
+            <hot-realtime-field taken-url="/users?surname={{fieldSurname}}" taken-check="is-taken">
+              <paper-input value="{{fieldSurname}}" name="surname" label="Your surname"></paper-input>
+            </hot-realtime-field>
+
+          </template>
+        </demo-snippet>
+
+        <demo-snippet>
+          <h1>Check if a surname is still "free", with custom "taken" message.</h1>
+          <p>"Taken" is already taken.</p>
+          <template is="dom-bind">
+
+            <hot-realtime-field taken-url="/users?surname={{fieldSurname}}" taken-check="is-not-taken" taken-check-message="The surname picked has already been taken!">
+              <paper-input value="{{fieldSurname}}" name="surname" label="Your surname"></paper-input>
+            </hot-realtime-field>
+
+          </template>
+        </demo-snippet>
+
+
+        <demo-snippet>
+          <h1>Check if a surname is still "free", with custom server error messages</h1>
+          <p>Here, the handled errors are changed. Also, a custom query error message is used, as well as a custom path. Note that this is for when the server returns an actual HTTP error (80% of the time in this demo)</p>
+          <template is="dom-bind">
+
+            <hot-realtime-field taken-url="/flaky/users?surname={{fieldSurname}}" taken-check="is-not-taken" taken-check-message="The surname picked has already been taken!" handle-taken-errors="400,422" error-path="errorMessage" taken-default-error-message="Error querying to check if surname is taken!">
+              <paper-input value="{{fieldSurname}}" name="surname" label="Your surname"></paper-input>
+            </hot-realtime-field>
+
+          </template>
+        </demo-snippet>
+
+        <h3>The lot</h3>
+
+        <demo-snippet>
+          <h1>The whole lot</h1>
+          <p>Here is an example of the absolute lot: preload, real-time saving and real-time availability check. "Taken" is already taken.</p>
+          <template is="dom-bind">
+            <hot-network manage-errors>
+              <hot-realtime-field preload-url="/users/579c/surname" save-url="/users/579c/surname" taken-url="/users?surname={{fieldSurname}}" taken-check="is-not-taken" taken-check-message="The surname picked has already been taken!">
+                <paper-input value="{{fieldSurname}}" name="surname" label="Your surname"></paper-input>
+              </hot-realtime-field>
+            </hot-network>
+
+          </template>
+        </demo-snippet>
+
+
+      </div>
+    </templater>
+
+    <!--
+    <demo-snippet>
+      <template>
+        <h1></h1>
+            <p></p>
+
+          </template>
+        </demo-snippet>
+        -->
+
+
   </hot-user-message-toasts>
 
 </body>
