@@ -152,7 +152,7 @@ Example:
 Example:
 
     <hot-realtime-field
-      get-check-message="Name taken sorry!"
+      taken-check-message="Name taken sorry!"
       taken-url="/users?username={{fieldUsername}}"
       taken-check="is-taken">
 
@@ -215,7 +215,7 @@ Note that `hot-network` will by default look for the `request` property of the f
 
 ## Using a custom target ID
 
-Although there haven't been any use cases where this has been necessary, it's also possible to specify the target ID directly and have the target input field further in the DOM, rather than being `<hot-realtime-field>`'s first child:
+It's also possible to specify the target ID directly and have the target input field further in the DOM, rather than being `<hot-realtime-field>`'s first child:
 
     <hot-realtime-field target-id="surname" save-url="/users/579c/surname">
       <p>Hello!</p>
@@ -549,11 +549,24 @@ Although there haven't been any use cases where this has been necessary, it's al
           this._field = this.getEffectiveChildren()[0];
         }
 
+        // This needs to happen once the _field is readied()
+        this.async(function() {
+
+          // Forcing a validator onto the object.
+          // If the element doesn't have a validator set, validation won't even trigger
+          // and it will be assumed to pass it regardless of its invalid status, which is BAD.
+          var validate = this._field.inputElement.validate;
+          this._field.inputElement.validate = function(v) {
+            if (this.invalid) return false;
+            return validate.call(this, v);
+          }
+
+        });
       },
 
       _inputReceived: function(e) {
 
-        // Won't do anything if the emitter is an unreadied Polymer widgets.This
+        // Won't do anything if the emitter is an unreadied Polymer widgets. This
         // is important as we are listening to events in an element in the light
         // DOM, and we *might* get the initial Polymer setting of the value to ""
         if (this._field.is && !this._field._readied) return;
@@ -609,16 +622,20 @@ Although there haven't been any use cases where this has been necessary, it's al
         // For GET methods, check if the takenCheck conditions are satisfied
         if (Polymer.dom(e).localTarget.method == 'get' && (this.takenCheck == 'is-taken' || this.takenCheck == 'is-not-taken')) {
 
-          var problem = this.takenCheck == 'is-taken' ? !response.length : response.length;
+          var problem;
+          if (!response) problem = true;
+          else problem = this.takenCheck == 'is-taken' ? !response.length : response.length;
           if (Array.isArray(response) && problem) {
             this._field.errorMessage = this.takenCheckMessage;
             this._field.invalid = true;
           } else {
+            this._field.errorMessage = '';
             this._field.invalid = false;
             // The "put" will only happen once the get is successful
             if (this.saveUrl) this._runMethod('put');
           }
         } else {
+          this._field.errorMessage = '';
           this._field.invalid = false;
         }
       },

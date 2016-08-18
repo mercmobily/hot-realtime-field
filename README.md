@@ -145,7 +145,7 @@ Example:
 Example:
 
     <hot-realtime-field
-      get-check-message="Name taken sorry!"
+      taken-check-message="Name taken sorry!"
       taken-url="/users?username={{fieldUsername}}"
       taken-check="is-taken">
 
@@ -208,7 +208,7 @@ Note that `hot-network` will by default look for the `request` property of the f
 
 ## Using a custom target ID
 
-Although there haven't been any use cases where this has been necessary, it's also possible to specify the target ID directly and have the target input field further in the DOM, rather than being `<hot-realtime-field>`'s first child:
+It's also possible to specify the target ID directly and have the target input field further in the DOM, rather than being `<hot-realtime-field>`'s first child:
 
     <hot-realtime-field target-id="surname" save-url="/users/579c/surname">
       <p>Hello!</p>
