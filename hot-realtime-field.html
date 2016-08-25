@@ -334,6 +334,11 @@ It's also possible to specify the target ID directly and have the target input f
           value: "is-taken" // is-taken, is-not-taken, none
         },
 
+
+        takenExcept: {
+          type: String
+        },
+
         /**
          * The error message displayed within the field when the `takenCheck` check
          *  fails
@@ -622,10 +627,16 @@ It's also possible to specify the target ID directly and have the target input f
         // For GET methods, check if the takenCheck conditions are satisfied
         if (Polymer.dom(e).localTarget.method == 'get' && (this.takenCheck == 'is-taken' || this.takenCheck == 'is-not-taken')) {
 
+          // Sets the `problem` variable, which will depend on takenCheck
+          // (is-taken or is-not-taken)
           var problem;
-          if (!response) problem = true;
-          else problem = this.takenCheck == 'is-taken' ? !response.length : response.length;
-          if (Array.isArray(response) && problem) {
+          if (!response || !Array.isArray( response) ) problem = true;
+          else {
+            if( this.takenExcept && this.takenExcept == this._field.value ) problem = false;
+            else problem = this.takenCheck == 'is-taken' ? !response.length : response.length;
+          }
+
+          if (problem) {
             this._field.errorMessage = this.takenCheckMessage;
             this._field.invalid = true;
           } else {
@@ -638,6 +649,11 @@ It's also possible to specify the target ID directly and have the target input f
           this._field.errorMessage = '';
           this._field.invalid = false;
         }
+
+        // This is a neat trick to make sure that a form watching the
+        // `change` event realises in real time that something has changed
+        this.fire( 'change', {}, { node: this._field } );
+
       },
 
       _dataLoaderError: function(e) {
@@ -677,7 +693,8 @@ It's also possible to specify the target ID directly and have the target input f
         // nor error messages. So, including them into the club
         if (!managed || this._field.hotAsChecked) {
           this.fire('user-message-error', {
-            message: errorMessage
+            message: errorMessage,
+            originalerror: e
           });
         }
 
