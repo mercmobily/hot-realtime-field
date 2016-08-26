@@ -560,11 +560,14 @@ It's also possible to specify the target ID directly and have the target input f
           // Forcing a validator onto the object.
           // If the element doesn't have a validator set, validation won't even trigger
           // and it will be assumed to pass it regardless of its invalid status, which is BAD.
+          var f = this._field;
           var validate = this._field.inputElement.validate;
+
           this._field.inputElement.validate = function(v) {
-            if (this.invalid) return false;
+            if (f.invalidByRealtimeField) return false;
             return validate.call(this, v);
-          }
+          };
+          this._originalErrorMessage = this._field.errorMessage;
 
         });
       },
@@ -598,13 +601,19 @@ It's also possible to specify the target ID directly and have the target input f
         }
         this.loaderRequest.contentType = 'application/json';
 
+        // Not running the get if the field is currently invalid
+        // and it's wasn't set invalid by this element
+        if( method == 'get' ){
+          if( this._field.invalid && !this._field.invalidByRealtimeField ) return;
+        }
+
         // Allows users to declaratively enrich the body
         if (method == 'put') {
           this.extend(this.loaderRequest.body, this.saveExtraBodyProperties);
-        }
 
-        // This will give users a chance to change the request if needed
-        this.fire('hot-realtime-field-before-put', {});
+          // This will give users a chance to change the request if needed
+          this.fire('hot-realtime-field-before-put', {});
+        }
 
         this.async(function() {
           this.loaderRequest.generateRequest();
@@ -624,6 +633,7 @@ It's also possible to specify the target ID directly and have the target input f
         // Get the response
         var response = e.detail.response;
 
+
         // For GET methods, check if the takenCheck conditions are satisfied
         if (Polymer.dom(e).localTarget.method == 'get' && (this.takenCheck == 'is-taken' || this.takenCheck == 'is-not-taken')) {
 
@@ -639,15 +649,18 @@ It's also possible to specify the target ID directly and have the target input f
           if (problem) {
             this._field.errorMessage = this.takenCheckMessage;
             this._field.invalid = true;
+            this._field.invalidByRealtimeField = true;
           } else {
-            this._field.errorMessage = '';
+            this._field.errorMessage = this._originalErrorMessage;
             this._field.invalid = false;
+            this._field.invalidByRealtimeField = false;
             // The "put" will only happen once the get is successful
             if (this.saveUrl) this._runMethod('put');
           }
         } else {
-          this._field.errorMessage = '';
+          this._field.errorMessage = this._originalErrorMessage;
           this._field.invalid = false;
+          this._field.invalidByRealtimeField = false;
         }
 
         // This is a neat trick to make sure that a form watching the
@@ -684,6 +697,7 @@ It's also possible to specify the target ID directly and have the target input f
         if (managed) {
           this._field.errorMessage = errorMessage;
           this._field.invalid = true;
+          this._field.invalidByRealtimeField = true;
         }
 
         // If it's not "managed", there was an error and YET it didn't work.
