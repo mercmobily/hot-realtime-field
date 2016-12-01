@@ -448,9 +448,7 @@ It's also possible to specify the target ID directly and have the target input f
 
         // Start listening for change events from the input field, 4 different cases (!)
         if (this._field.is) {
-          // Change to this when https://github.com/PolymerElements/paper-input/issues/421 is fixed
-          //this.listen(this._field, this._field.hotAsChecked ? 'checked-changed' : 'value-changed', "_inputReceived");
-          this.listen(this._field, this._field.hotAsChecked ? 'checked-changed' : 'input', "_inputReceived");
+          this.listen(this._field, this._field.hotAsChecked ? 'checked-changed' : 'value-changed', "_inputReceived");
         } else {
           this.listen(this._field, this._field.hotAsChecked ? 'change' : 'input', "_inputReceived");
         }
@@ -460,9 +458,7 @@ It's also possible to specify the target ID directly and have the target input f
 
         // Stop listening for change events from the input field, 4 different cases (!)
         if (this._field.is) {
-          // Change to this when https://github.com/PolymerElements/paper-input/issues/421 is fixed
-          //this.unlisten(this._field, this._field.hotAsChecked ? 'checked-changed' : 'input', "_inputReceived");
-          this.unlisten(this._field, this._field.hotAsChecked ? 'checked-changed' : 'input', "_inputReceived");
+          this.unlisten(this._field, this._field.hotAsChecked ? 'checked-changed' : 'value-changed', "_inputReceived");
         } else {
           this.unlisten(this._field, this._field.hotAsChecked ? 'change' : 'input', "_inputReceived");
         }
@@ -561,10 +557,14 @@ It's also possible to specify the target ID directly and have the target input f
           // If the element doesn't have a validator set, validation won't even trigger
           // and it will be assumed to pass it regardless of its invalid status, which is BAD.
           var f = this._field;
-          var validate = this._field.inputElement.validate;
 
-          this._field.inputElement.validate = function(v) {
-            if (f.invalidByRealtimeField) return false;
+          var inputElement = this._field.inputElement || this._field;
+          var validate = inputElement.validate;
+          inputElement.validate = function(v) {
+            if (f.invalidByRealtimeField){
+              f.invalid = true;
+              return false;
+            }
             return validate.call(this, v);
           };
           this._originalErrorMessage = this._field.errorMessage;
@@ -574,10 +574,17 @@ It's also possible to specify the target ID directly and have the target input f
 
       _inputReceived: function(e) {
 
+
         // Won't do anything if the emitter is an unreadied Polymer widgets. This
         // is important as we are listening to events in an element in the light
         // DOM, and we *might* get the initial Polymer setting of the value to ""
         if (this._field.is && !this._field._readied) return;
+
+        // Basic debounce to make up for Polymer's double notification bug
+        // https://github.com/PolymerElements/paper-input/issues/421 is fixed
+        // TODO: Check that it also works for checkboxes
+        if( this.alreadyReceived == e.detail.value ) return;
+        else this.alreadyReceived = e.detail.value;
 
         // Set the correct handleAs
         this.loaderRequest.handleAs = 'json';
@@ -590,6 +597,8 @@ It's also possible to specify the target ID directly and have the target input f
       },
 
       _runMethod: function(method) {
+
+        console.log("IN RUNMETHOD");
 
         if (this.disableInFlight) this._field.disabled = true;
 
@@ -604,8 +613,12 @@ It's also possible to specify the target ID directly and have the target input f
         // Not running the get if the field is currently invalid
         // and it's wasn't set invalid by this element
         if( method == 'get' ){
-          if( this._field.invalid && !this._field.invalidByRealtimeField ) return;
+
+          // TODO: CHECK WHY THIS DOESN'T WORK
+//          if( this._field.invalid ){ console.log("FIELD INVALID, QUITTING! ")} return;
+//          if( this._field.invalid && !this._field.invalidByRealtimeField ) return;
         }
+
 
         // Allows users to declaratively enrich the body
         if (method == 'put') {
@@ -621,6 +634,7 @@ It's also possible to specify the target ID directly and have the target input f
       },
 
       _dataLoaderResponse: function(e) {
+
 
         // Only consider the last made request
         if (e.detail != this.loaderRequest.lastRequest) return;
@@ -648,20 +662,24 @@ It's also possible to specify the target ID directly and have the target input f
 
           if (problem) {
             this._field.errorMessage = this.takenCheckMessage;
-            this._field.invalid = true;
+            //this._field.invalid = true;
             this._field.invalidByRealtimeField = true;
           } else {
             this._field.errorMessage = this._originalErrorMessage;
-            this._field.invalid = false;
+            //this._field.invalid = false;
             this._field.invalidByRealtimeField = false;
             // The "put" will only happen once the get is successful
             if (this.saveUrl) this._runMethod('put');
           }
-        } else {
-          this._field.errorMessage = this._originalErrorMessage;
-          this._field.invalid = false;
-          this._field.invalidByRealtimeField = false;
+          this._field.validate();
         }
+        //else {
+        //  this._field.errorMessage = this._originalErrorMessage;
+        //  this._field.invalid = false;
+        //  this._field.invalidByRealtimeField = false;
+        //}
+
+        //
 
         // This is a neat trick to make sure that a form watching the
         // `change` event realises in real time that something has changed
