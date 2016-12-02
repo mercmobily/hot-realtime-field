@@ -574,11 +574,16 @@ It's also possible to specify the target ID directly and have the target input f
 
       _inputReceived: function(e) {
 
-
         // Won't do anything if the emitter is an unreadied Polymer widgets. This
         // is important as we are listening to events in an element in the light
         // DOM, and we *might* get the initial Polymer setting of the value to ""
         if (this._field.is && !this._field._readied) return;
+
+        // Input was received: whatever was invalidated by the server is
+        // no longere invalid. Restore error message and set
+        // invalidByRealtimeField as false
+        this._field.errorMessage = this._originalErrorMessage;
+        this._field.invalidByRealtimeField = false;
 
         // Basic debounce to make up for Polymer's double notification bug
         // https://github.com/PolymerElements/paper-input/issues/421 is fixed
@@ -589,16 +594,16 @@ It's also possible to specify the target ID directly and have the target input f
         // Set the correct handleAs
         this.loaderRequest.handleAs = 'json';
 
-        // Run the get or the put. NOTE that it's possible that BOTH of them
-        // are set. However, in that case `get` will be run first, and `put`
-        // will only get run once `get` was successful
+        // Runs validation; This is to make sure that invalid field are not
+        // sent over the wire for server validation
+        this._field.validate();
+
+        // Run get or put method
         if (this.takenUrl) this._runMethod('get');
         else if (this.saveUrl) this._runMethod('put');
       },
 
       _runMethod: function(method) {
-
-        console.log("IN RUNMETHOD");
 
         if (this.disableInFlight) this._field.disabled = true;
 
@@ -610,15 +615,12 @@ It's also possible to specify the target ID directly and have the target input f
         }
         this.loaderRequest.contentType = 'application/json';
 
+
         // Not running the get if the field is currently invalid
         // and it's wasn't set invalid by this element
         if( method == 'get' ){
-
-          // TODO: CHECK WHY THIS DOESN'T WORK
-//          if( this._field.invalid ){ console.log("FIELD INVALID, QUITTING! ")} return;
-//          if( this._field.invalid && !this._field.invalidByRealtimeField ) return;
+          if( this._field.invalid && !this._field.invalidByRealtimeField ) return;
         }
-
 
         // Allows users to declaratively enrich the body
         if (method == 'put') {
@@ -628,9 +630,7 @@ It's also possible to specify the target ID directly and have the target input f
           this.fire('hot-realtime-field-before-put', {});
         }
 
-        this.async(function() {
-          this.loaderRequest.generateRequest();
-        });
+        this.loaderRequest.generateRequest();
       },
 
       _dataLoaderResponse: function(e) {
@@ -662,29 +662,22 @@ It's also possible to specify the target ID directly and have the target input f
 
           if (problem) {
             this._field.errorMessage = this.takenCheckMessage;
-            //this._field.invalid = true;
             this._field.invalidByRealtimeField = true;
           } else {
             this._field.errorMessage = this._originalErrorMessage;
-            //this._field.invalid = false;
             this._field.invalidByRealtimeField = false;
+
             // The "put" will only happen once the get is successful
             if (this.saveUrl) this._runMethod('put');
           }
+
+          // Re-run validation, so that invalidByRealtimeField will take effect
           this._field.validate();
         }
-        //else {
-        //  this._field.errorMessage = this._originalErrorMessage;
-        //  this._field.invalid = false;
-        //  this._field.invalidByRealtimeField = false;
-        //}
-
-        //
 
         // This is a neat trick to make sure that a form watching the
         // `change` event realises in real time that something has changed
         this.fire( 'change', {}, { node: this._field } );
-
       },
 
       _dataLoaderError: function(e) {
