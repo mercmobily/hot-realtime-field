@@ -582,7 +582,7 @@ It's also possible to specify the target ID directly and have the target input f
         // Input was received: whatever was invalidated by the server is
         // no longere invalid. Restore error message and set
         // invalidByRealtimeField as false
-        this._field.errorMessage = this._originalErrorMessage;
+        if( this._originalErrorMessage ) this._field.errorMessage = this._originalErrorMessage;
         this._field.invalidByRealtimeField = false;
 
         // Basic debounce to make up for Polymer's double notification bug
@@ -664,7 +664,7 @@ It's also possible to specify the target ID directly and have the target input f
             this._field.errorMessage = this.takenCheckMessage;
             this._field.invalidByRealtimeField = true;
           } else {
-            this._field.errorMessage = this._originalErrorMessage;
+            if( this._originalErrorMessage) this._field.errorMessage = this._originalErrorMessage;
             this._field.invalidByRealtimeField = false;
 
             // The "put" will only happen once the get is successful
