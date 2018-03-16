@@ -1,32 +1,52 @@
 <!doctype html>
-
-<html>
+<html lang="en">
   <head>
-    <title>hot-realtime-field test</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
-    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+    <title>hot-realtime-field test</title>
+
+    <script src="../../webcomponentsjs/webcomponents-loader.js"></script>
     <script src="../../web-component-tester/browser.js"></script>
 
     <link rel="import" href="../hot-realtime-field.html">
   </head>
   <body>
 
-    <test-fixture id="basic">
+    <test-fixture id="BasicTestFixture">
       <template>
         <hot-realtime-field></hot-realtime-field>
       </template>
     </test-fixture>
 
-    <script>
-      suite('hot-realtime-field', function() {
+    <test-fixture id="ChangedPropertyTestFixture">
+      <template>
+        <hot-realtime-field prop1="new-prop1"></hot-realtime-field>
+      </template>
+    </test-fixture>
 
-        test('instantiating the element works', function() {
-          var element = fixture('basic');
-          assert.equal(element.is, 'hot-realtime-field');
+    <script>
+      suite('hot-realtime-field', () => {
+
+        test('instantiating the element with default properties works', () => {
+          const element = fixture('BasicTestFixture');
+          assert.equal(element.prop1, 'hot-realtime-field');
+          const elementShadowRoot = element.shadowRoot;
+          const elementHeader = elementShadowRoot.querySelector('h2');
+          assert.equal(elementHeader.innerHTML, 'Hello hot-realtime-field!');
+        });
+
+        test('setting a property on the element works', () => {
+          // Create a test fixture
+          const element = fixture('ChangedPropertyTestFixture');
+          assert.equal(element.prop1, 'new-prop1');
+          const elementShadowRoot = element.shadowRoot;
+          const elementHeader = elementShadowRoot.querySelector('h2');
+          assert.equal(elementHeader.innerHTML, 'Hello new-prop1!');
         });
 
       });
     </script>
+
   </body>
 </html>
