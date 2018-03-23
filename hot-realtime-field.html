@@ -534,6 +534,8 @@ class HotRealtimeField extends Polymer.Element {
     // no longere invalid. Restore error message and set
     // invalidByRealtimeField as false
     if (this._originalErrorMessage) this._field.errorMessage = this._originalErrorMessage
+    else this._field.errorMessage = ''
+
     this._field.invalidByRealtimeField = false
 
     // Basic debounce to make up for Polymer's double notification bug
