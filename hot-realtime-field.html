@@ -549,6 +549,9 @@ class HotRealtimeField extends Polymer.Element {
     // Set the correct handleAs
     this.loaderRequest.handleAs = 'json'
 
+    // If the field is empty, no point in running the query
+    if (!this._field.value) return
+
     // Runs validation; This is to make sure that invalid field are not
     // sent over the wire for server validation
     this._field.validate()
@@ -686,3 +689,4 @@ class HotRealtimeField extends Polymer.Element {
 customElements.define(HotRealtimeField.is, HotRealtimeField)
   </script>
 </dom-module>
+
