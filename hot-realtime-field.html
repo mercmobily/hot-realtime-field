@@ -438,6 +438,10 @@ class HotRealtimeField extends Polymer.Element {
     if (e.target.id === 'preloader' && this.preloaderSilenced) e.stopPropagation()
   }
 
+  reload () {
+    this.preloaderRequest.generateRequest()
+  }
+
   connectedCallback () {
     super.connectedCallback()
 
@@ -582,6 +586,7 @@ class HotRealtimeField extends Polymer.Element {
 
     // Allows users to declaratively enrich the body
     if (method === 'put') {
+      debugger
       for (let k in this.saveExtraBodyProperties) {
         if (this.saveExtraBodyProperties.hasOwnProperty(k)) this.loaderRequest.body[k] = this.saveExtraBodyProperties[k]
       }
@@ -689,4 +694,3 @@ class HotRealtimeField extends Polymer.Element {
 customElements.define(HotRealtimeField.is, HotRealtimeField)
   </script>
 </dom-module>
-
