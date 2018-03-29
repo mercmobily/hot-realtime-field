@@ -586,7 +586,6 @@ class HotRealtimeField extends Polymer.Element {
 
     // Allows users to declaratively enrich the body
     if (method === 'put') {
-      debugger
       for (let k in this.saveExtraBodyProperties) {
         if (this.saveExtraBodyProperties.hasOwnProperty(k)) this.loaderRequest.body[k] = this.saveExtraBodyProperties[k]
       }
