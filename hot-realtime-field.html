@@ -545,7 +545,7 @@ class HotRealtimeField extends Polymer.Element {
     // Basic debounce to make up for Polymer's double notification bug
     // https://github.com/PolymerElements/paper-input/issues/421 is fixed
     // NOTE: Only for normal input fields, not to be applied to checkboxes
-    if (!this._field.hotAsChecked) {
+    if (!this._field.hotAsChecked && e.detail) {
       if (this.alreadyReceived === e.detail.value) return
       else this.alreadyReceived = e.detail.value
     }
