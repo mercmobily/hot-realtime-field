@@ -103,8 +103,6 @@ Or using a check-like field:
       </hot-realtime-field>
     </hot-network>
 
-`hot-network` by default monitors the events of the `request` property of its first child. In this case, the first child is indeed `hot-realtime-field`, which has a `request` property pointing to the `iron-ajax` object which will do the preloading. The `manage-error` option means that in case of error, `hot-network` will give the users a visual cue that the operation didn't work, and will also provide a way to re-run the failed AJAX operation. All for free!
-
 Note that you can have real time, self-saving elements within forms. However, it would likely confuse users and should not be encouraged.
 
 Before running the GET call to preload data, `hot-realtime-field` also emits an event called 'hot-realtime-field-before-preload' which will give developers a way to change the `preloaderRequest` property (representing the iron-ajax element about to make the GET call).
@@ -209,7 +207,6 @@ Adding hot-network will ensure that the preload phase will be resilient.
       </hot-realtime-field>
     </hot-network>
 
-Note that `hot-network` will by default look for the `request` property of the first child. In this case, the `request` property of `hot-realtime-field` happens to be the `iron-ajax` element used to do the preloading. This is intentional, to make sure that `hot-realtime-field` works well with `hot-network` using default values.
 
 @group Hotplate Elements
 @element hot-realtime-field
@@ -390,10 +387,12 @@ class HotRealtimeField extends Polymer.Element {
       /**
        * If true, ajax events from preloader will not be emitted.
        */
+      /*
       preloaderSilenced: {
         type: Boolean,
         value: false
       },
+      */
 
       /**
        * The `iron-ajax` element used to make request to GET and PUT information using
@@ -406,10 +405,12 @@ class HotRealtimeField extends Polymer.Element {
       /**
        * If true, ajax events from preloader will not be emitted.
        */
+      /*
       loaderSilenced: {
         type: Boolean,
         value: false
       },
+      */
 
       _field: {
         type: Object
@@ -418,6 +419,7 @@ class HotRealtimeField extends Polymer.Element {
   }
 
   _listenToField () {
+
     if (this._field.is) {
       this._field.addEventListener(this._field.hotAsChecked ? 'checked-changed' : 'value-changed', this._inputReceivedBound)
     } else {
@@ -433,46 +435,26 @@ class HotRealtimeField extends Polymer.Element {
     }
   }
 
+  /*
   _maybePreventBubbling (e) {
     if (e.target.id === 'loader' && this.loaderSilenced) e.stopPropagation()
     if (e.target.id === 'preloader' && this.preloaderSilenced) e.stopPropagation()
   }
+  */
 
-  reload () {
-    this.preloaderRequest.generateRequest()
+  constructor () {
+    super()
+
+    this._inputReceivedBound = this._inputReceived.bind(this)
+    // this._maybePreventBubblingBound = this._maybePreventBubbling.bind(this)
   }
 
   connectedCallback () {
     super.connectedCallback()
 
-    this._field = Polymer.FlattenedNodesObserver.getFlattenedNodes(this).find(el => el.nodeType === Node.ELEMENT_NODE)
-    if (!this._field) {
-      throw new Error('hot-realtime-field could not find the element to be decorated')
-    }
-
-    // Add listeners to honour the loaderSilenced and preloaderSilenced flags
-    ;['request', 'response', 'error'].forEach((event) => {
-      this.loaderRequest.addEventListener(event, this._maybePreventBubblingBound)
-      this.preloaderRequest.addEventListener(event, this._maybePreventBubblingBound)
+    Polymer.RenderStatus.afterNextRender(this, () => {
+      this._listenToField()
     })
-
-    this._field.hotAsChecked = !!this._field._hasIronCheckedElementBehavior
-
-    this._listenToField()
-
-    // Needs to be preloaded. Only do this one for each time it's attached.
-    if (this.preloadUrl && !this._preloaded) {
-      this.preloaderRequest.method = 'get'
-      this.preloaderRequest.url = this.preloadUrl
-      this.preloaderRequest.handleAs = 'json'
-
-      // This will give users a chance to change the request if needed
-      this.dispatchEvent(new CustomEvent('hot-realtime-field-before-preload', { detail: {}, bubbles: true, composed: true }))
-
-      setTimeout(function () {
-        this.preloaderRequest.generateRequest()
-      }.bind(this), 0)
-    }
   }
 
   disconnectedCallback () {
@@ -481,40 +463,26 @@ class HotRealtimeField extends Polymer.Element {
     this._unlistenToField()
   }
 
-  _dataPreloaderResponse (e) {
-    var response = e.detail.response
-
-    if (response) {
-      // Insane check to see if this is to be a chekcbox
-      var attr = this._field.hotAsChecked ? 'checked' : 'value'
-      this._field[attr] = this.get(this.preloadedValuePath || this._field.name || '', response)
-    }
-    this._preloaded = true
-  }
-
-  constructor () {
-    super()
-
-    this._inputReceivedBound = this._inputReceived.bind(this)
-    this._maybePreventBubblingBound = this._maybePreventBubbling.bind(this)
-  }
-
   ready () {
     super.ready()
-    // Having `this.request` will make pre-loading compatible with hot-network using
-    // hot-network's default settings
+
     this.loaderRequest = this.$.loader
     this.preloaderRequest = this.$.preloader
 
-    // This needs to happen once the _field is readied()
-    setTimeout(function () {
-      // Forcing a validator onto the object.
-      // If the element doesn't have a validator set, validation won't even trigger
-      // and it will be assumed to pass it regardless of its invalid status, which is BAD.
+    Polymer.RenderStatus.afterNextRender(this, () => {
+      this._field = Polymer.FlattenedNodesObserver.getFlattenedNodes(this).find(el => el.nodeType === Node.ELEMENT_NODE)
+      if (!this._field) {
+        throw new Error('hot-realtime-field could not find the element to be decorated')
+      }
+
       var f = this._field
 
       var inputElement = this._field.inputElement || this._field
       var validate = inputElement.validate
+
+      // Forcing a validator onto the object.
+      // If the element doesn't have a validator set, validation won't even trigger
+      // and it will be assumed to pass it regardless of its invalid status, which is BAD.
       inputElement.validate = function (v) {
         if (f.invalidByRealtimeField) {
           f.invalid = true
@@ -523,14 +491,49 @@ class HotRealtimeField extends Polymer.Element {
         return validate.call(this, v)
       }
       this._originalErrorMessage = this._field.errorMessage
-    }.bind(this), 0)
+
+      /*
+      // Add listeners to honour the loaderSilenced and preloaderSilenced flags
+      ;['request', 'response', 'error'].forEach((event) => {
+        this.loaderRequest.addEventListener(event, this._maybePreventBubblingBound)
+        this.preloaderRequest.addEventListener(event, this._maybePreventBubblingBound)
+      })
+      */
+
+      // IF it's a checkbox, it will behave slightly differently
+      this._field.hotAsChecked = !!this._field._hasIronCheckedElementBehavior
+
+      // Needs to be preloaded. Only do this one for each time it's attached.
+      if (this.preloadUrl && !this._preloaded) {
+        this.preloaderRequest.method = 'get'
+        this.preloaderRequest.url = this.preloadUrl
+        this.preloaderRequest.handleAs = 'json'
+
+        // This will give users a chance to change the request if needed
+        this.dispatchEvent(new CustomEvent('hot-realtime-field-before-preload', { detail: {}, bubbles: true, composed: true }))
+        this.preloaderRequest.generateRequest()
+      }
+    })
+  }
+
+  _dataPreloaderResponse (e) {
+    var response = e.detail.response
+
+    if (response) {
+      // Insane check to see if this is to be a chekcbox
+      var attr = this._field.hotAsChecked ? 'checked' : 'value'
+      this._internalChange = true
+      this._field[attr] = !!this.get(this.preloadedValuePath || this._field.name || '', response)
+      this._internalChange = false
+    }
+    this._preloaded = true
+  }
+
+  reload () {
+    this.preloaderRequest.generateRequest()
   }
 
   _inputReceived (e) {
-    // Preload URL is set, but it hasn't been loaded yet. Abort, as this is
-    // most likely the initial load due to this.preloadUrl
-    if (this.preloadUrl && !this._preloaded) return
-
     // If an internal change is happening, ignore
     if (this._internalChange) return
 
@@ -567,6 +570,7 @@ class HotRealtimeField extends Polymer.Element {
     }, 0)
   }
 
+  // Here, 'get' is for takenUrl, and 'put' is for saveUrl
   _runMethod (method) {
     if (this.disableInFlight) this._field.disabled = true
 
@@ -681,8 +685,6 @@ class HotRealtimeField extends Polymer.Element {
 
     // If it's a check-like input, it will need to reset it to its previous
     // state for the UI to make sense.
-    // Note that it needs to be sandwitched between unlisten/listen or
-    // it will attempt to send the state-reverting back to the server...
     if (this._field.hotAsChecked) {
       this._internalChange = true
       this._field.set('checked', !this._field.checked)

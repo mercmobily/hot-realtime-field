@@ -48,7 +48,7 @@ If the PUT fails, check-like fields are reset to their previous state.
       <paper-input class="realtime" name="surname" label="Your surname"></paper-input>
     </hot-realtime-field>
 
-* `error-path` In case of error, the error message is extrapolated from the response's body (which is expected to be a JSON, if present). An example could be { "errors":[ {"field": "name", "error":"The name is too long"} ] }. With the default path,  `errors.0.message`, "The name is too long" will be extrapolated. Default: `errors.0.message`.
+* `error-path` In case of error, the error message is extrapolated from the response's body (which is expected to be a JSON, if present). An example could be { "errors":[ {"field": "name", "error":"The name is too long"} ] }. The default path is `errors.0.message` will be extrapolated. Default: `errors.0.message`.
 
 * `save-default-error-message`. By default `hot-realtime-field` will try to extrapolate the error message from the response's body (which is expected to be a JSON) using `error-path` (see the previous attribute explained). If extrapolation failed (in case the server didn't respond at all, for example, or the response wasn't compliant), `save-default-error-message` will be shown instead. Default: `Error querying`.
 
@@ -97,8 +97,6 @@ Or using a check-like field:
         <paper-toggle-button name="accept" label="Accept?">Accept?</paper-toggle-button>
       </hot-realtime-field>
     </hot-network>
-
-`hot-network` by default monitors the events of the `request` property of its first child. In this case, the first child is indeed `hot-realtime-field`, which has a `request` property pointing to the `iron-ajax` object which will do the preloading. The `manage-error` option means that in case of error, `hot-network` will give the users a visual cue that the operation didn't work, and will also provide a way to re-run the failed AJAX operation. All for free!
 
 Note that you can have real time, self-saving elements within forms. However, it would likely confuse users and should not be encouraged.
 
@@ -204,18 +202,4 @@ Adding hot-network will ensure that the preload phase will be resilient.
       </hot-realtime-field>
     </hot-network>
 
-Note that `hot-network` will by default look for the `request` property of the first child. In this case, the `request` property of `hot-realtime-field` happens to be the `iron-ajax` element used to do the preloading. This is intentional, to make sure that `hot-realtime-field` works well with `hot-network` using default values.
-
-## Using a custom target ID
-
-It's also possible to specify the target ID directly and have the target input field further in the DOM, rather than being `<hot-realtime-field>`'s first child:
-
-    <hot-realtime-field target-id="surname" save-url="/users/579c/surname">
-      <p>Hello!</p>
-      <paper-input id="surname" required name="surname" label="Your surname"></paper-input>
-    </hot-realtime-field>
-
-## Using alternative `iron-ajax` widgets
-
-`hot-realtime-field` will use its internal `iron-ajax` request widgets `to carry out requests. If you would like to use your own `iron-ajax` widgets, you can set the properties `loader-iron-ajax-provided` and `preloader-iron-ajax-provided`, which will look for an element with id `loader` and `preloader` respectively, and use them to make the requests.
 
