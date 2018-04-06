@@ -254,7 +254,8 @@ class HotRealtimeField extends Polymer.Element {
        *  `preloadedValuePath`
        */
       preloadUrl: {
-        type: String
+        type: String,
+        observer: '_doPreload'
       },
 
       /**
@@ -419,7 +420,6 @@ class HotRealtimeField extends Polymer.Element {
   }
 
   _listenToField () {
-
     if (this._field.is) {
       this._field.addEventListener(this._field.hotAsChecked ? 'checked-changed' : 'value-changed', this._inputReceivedBound)
     } else {
@@ -475,14 +475,13 @@ class HotRealtimeField extends Polymer.Element {
         throw new Error('hot-realtime-field could not find the element to be decorated')
       }
 
-      var f = this._field
-
       var inputElement = this._field.inputElement || this._field
       var validate = inputElement.validate
 
       // Forcing a validator onto the object.
       // If the element doesn't have a validator set, validation won't even trigger
       // and it will be assumed to pass it regardless of its invalid status, which is BAD.
+      var f = this._field
       inputElement.validate = function (v) {
         if (f.invalidByRealtimeField) {
           f.invalid = true
@@ -503,17 +502,21 @@ class HotRealtimeField extends Polymer.Element {
       // IF it's a checkbox, it will behave slightly differently
       this._field.hotAsChecked = !!this._field._hasIronCheckedElementBehavior
 
-      // Needs to be preloaded. Only do this one for each time it's attached.
-      if (this.preloadUrl && !this._preloaded) {
-        this.preloaderRequest.method = 'get'
-        this.preloaderRequest.url = this.preloadUrl
-        this.preloaderRequest.handleAs = 'json'
-
-        // This will give users a chance to change the request if needed
-        this.dispatchEvent(new CustomEvent('hot-realtime-field-before-preload', { detail: {}, bubbles: true, composed: true }))
-        this.preloaderRequest.generateRequest()
-      }
+      this._doPreload()
     })
+  }
+
+  _doPreload () {
+    // Needs to be preloaded. Only do this one for each time it's attached.
+    if (this._field && this.preloadUrl) {
+      this.preloaderRequest.method = 'get'
+      this.preloaderRequest.url = this.preloadUrl
+      this.preloaderRequest.handleAs = 'json'
+
+      // This will give users a chance to change the request if needed
+      this.dispatchEvent(new CustomEvent('hot-realtime-field-before-preload', { detail: {}, bubbles: true, composed: true }))
+      this.preloaderRequest.generateRequest()
+    }
   }
 
   _dataPreloaderResponse (e) {
@@ -526,7 +529,6 @@ class HotRealtimeField extends Polymer.Element {
       this._field[attr] = !!this.get(this.preloadedValuePath || this._field.name || '', response)
       this._internalChange = false
     }
-    this._preloaded = true
   }
 
   reload () {
