@@ -502,13 +502,21 @@ class HotRealtimeField extends Polymer.Element {
       // IF it's a checkbox, it will behave slightly differently
       this._field.hotAsChecked = !!this._field._hasIronCheckedElementBehavior
 
-      this._doPreload()
+      // This will tell _doPreload() that the element is good to go
+      this._readyToRockAndRoll = true
+
+      // MAYBE run a deferred preload, if needed
+      if (!this._preloaded) this._doPreload()
     })
   }
 
   _doPreload () {
+    // If it's not yet ready to rock and roll, get out
+    // ready() itself will run this if _preloaded is not true
+    if (!this._readyToRockAndRoll) return
+
     // Needs to be preloaded. Only do this one for each time it's attached.
-    if (this._field && this.preloadUrl) {
+    if (this._field && this.preloadUrl !== '') {
       this.preloaderRequest.method = 'get'
       this.preloaderRequest.url = this.preloadUrl
       this.preloaderRequest.handleAs = 'json'
@@ -516,6 +524,7 @@ class HotRealtimeField extends Polymer.Element {
       // This will give users a chance to change the request if needed
       this.dispatchEvent(new CustomEvent('hot-realtime-field-before-preload', { detail: {}, bubbles: true, composed: true }))
       this.preloaderRequest.generateRequest()
+      this._preloaded = true
     }
   }
 
