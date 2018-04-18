@@ -516,7 +516,7 @@ class HotRealtimeField extends Polymer.Element {
     if (!this._readyToRockAndRoll) return
 
     // Needs to be preloaded. Only do this one for each time it's attached.
-    if (this._field && this.preloadUrl !== '') {
+    if (this._field && typeof this.preloadUrl !== 'undefined') {
       this.preloaderRequest.method = 'get'
       this.preloaderRequest.url = this.preloadUrl
       this.preloaderRequest.handleAs = 'json'
